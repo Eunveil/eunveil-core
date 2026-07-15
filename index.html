@@ -8,409 +8,921 @@
     content="width=device-width, initial-scale=1.0"
   >
 
-  <title>Eunveil — Proof of Journey</title>
+  <title>Eunveil — Living Universe Prototype</title>
 
   <style>
     * {
       box-sizing: border-box;
     }
 
+    :root {
+      --gold: #e7c16d;
+      --blue: #7bbcff;
+      --green: #83e6af;
+      --red: #ff8585;
+      --text: #eaf2ff;
+      --muted: #8093ad;
+    }
+
     body {
       margin: 0;
-      min-height: 100vh;
+      width: 100vw;
+      height: 100vh;
       overflow: hidden;
-      color: white;
-      font-family: Arial, sans-serif;
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
       background:
-        radial-gradient(circle at center, #101d35 0%, #030711 45%, #000 100%);
+        radial-gradient(circle at 50% 42%, #101c35 0%, #050912 42%, #010207 100%);
     }
 
-    .background-stars {
+    #universe {
       position: fixed;
       inset: 0;
+      overflow: hidden;
+    }
+
+    .nebula {
+      position: absolute;
+      width: 70vw;
+      height: 70vw;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
       pointer-events: none;
-      background-image:
-        radial-gradient(circle, rgba(255,255,255,.7) 1px, transparent 1px),
-        radial-gradient(circle, rgba(130,180,255,.5) 1px, transparent 1px);
-      background-position: 0 0, 40px 60px;
-      background-size: 90px 90px, 130px 130px;
-      opacity: 0.35;
+      background:
+        radial-gradient(circle at 40% 45%, rgba(56, 93, 160, 0.11), transparent 38%),
+        radial-gradient(circle at 65% 55%, rgba(129, 73, 160, 0.07), transparent 36%);
+      filter: blur(30px);
     }
 
-    .app {
-      position: relative;
-      z-index: 1;
-      width: min(900px, 94vw);
-      min-height: 100vh;
-      margin: auto;
-      padding: 28px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: clamp(2rem, 5vw, 3.4rem);
-      letter-spacing: 0.28em;
-      color: #e7bf68;
-      text-shadow: 0 0 22px rgba(231, 191, 104, 0.35);
-    }
-
-    .subtitle {
-      margin-top: 8px;
-      color: #b6c7df;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-    }
-
-    .panel {
-      width: 100%;
-      margin-top: 32px;
-      padding: 22px;
-      text-align: center;
-      border: 1px solid rgba(231, 191, 104, 0.35);
-      border-radius: 18px;
-      background: rgba(3, 8, 18, 0.78);
-      box-shadow: 0 0 35px rgba(70, 120, 200, 0.12);
-      backdrop-filter: blur(8px);
-    }
-
-    .rule-label {
-      color: #8298b8;
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.15em;
-    }
-
-    .rule {
-      margin-top: 8px;
-      font-size: 1.4rem;
-      color: #f1d38d;
-    }
-
-    .progress {
-      margin-top: 14px;
-      color: #a7bad4;
-    }
-
-    .journey {
-      position: relative;
-      width: 100%;
-      min-height: 390px;
-      margin-top: 20px;
-    }
-
-    .current-star {
+    #ambient-stars,
+    #journey-layer,
+    #connection-layer {
       position: absolute;
-      left: 50%;
-      top: 42px;
-      transform: translateX(-50%);
+      inset: 0;
     }
 
-    .choices {
+    #connection-layer {
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .ambient-star {
       position: absolute;
-      left: 50%;
-      top: 220px;
-      width: min(650px, 100%);
-      transform: translateX(-50%);
-      display: flex;
-      justify-content: space-around;
-      gap: 20px;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: twinkle var(--twinkle-speed) ease-in-out infinite alternate;
+      animation-delay: var(--twinkle-delay);
     }
 
-    .star-button {
-      width: 95px;
-      height: 95px;
+    @keyframes twinkle {
+      from {
+        opacity: var(--low-opacity);
+        transform: scale(0.92);
+      }
+
+      to {
+        opacity: var(--high-opacity);
+        transform: scale(1.08);
+      }
+    }
+
+    .journey-star {
+      position: absolute;
       border: none;
       border-radius: 50%;
-      color: white;
-      font-size: 1.25rem;
-      font-weight: bold;
+      padding: 0;
       cursor: pointer;
+      transform: translate(-50%, -50%);
+      transition:
+        transform 180ms ease,
+        filter 180ms ease,
+        opacity 300ms ease,
+        box-shadow 300ms ease;
+    }
+
+    .journey-star:hover {
+      transform: translate(-50%, -50%) scale(1.18);
+      filter: brightness(1.25);
+      z-index: 20;
+    }
+
+    .journey-star.active {
       background:
-        radial-gradient(circle, white 0 7%, #89bbff 10%, #284d87 24%, #09111f 65%);
+        radial-gradient(circle, white 0 9%, #ffe29b 13%, #ba7c25 30%, #171006 68%);
       box-shadow:
-        0 0 12px white,
-        0 0 28px rgba(91, 157, 255, 0.85),
-        0 0 65px rgba(50, 100, 190, 0.45);
-      transition: transform 0.18s ease, filter 0.18s ease;
+        0 0 9px white,
+        0 0 24px rgba(255, 218, 130, 0.95),
+        0 0 58px rgba(204, 137, 43, 0.55);
+      animation: activePulse 2.3s ease-in-out infinite;
     }
 
-    .star-button:hover {
-      transform: scale(1.12);
-      filter: brightness(1.2);
+    @keyframes activePulse {
+      0%, 100% {
+        box-shadow:
+          0 0 9px white,
+          0 0 24px rgba(255, 218, 130, 0.85),
+          0 0 52px rgba(204, 137, 43, 0.42);
+      }
+
+      50% {
+        box-shadow:
+          0 0 13px white,
+          0 0 34px rgba(255, 218, 130, 1),
+          0 0 78px rgba(204, 137, 43, 0.6);
+      }
     }
 
-    .current-star .star-button {
+    .journey-star.choice {
+      opacity: 0;
+      background:
+        radial-gradient(circle, white 0 9%, #a7d4ff 13%, #36649a 30%, #07111d 68%);
+      box-shadow:
+        0 0 8px white,
+        0 0 22px rgba(104, 176, 255, 0.9),
+        0 0 48px rgba(60, 118, 190, 0.45);
+    }
+
+    .journey-star.choice.visible {
+      opacity: 1;
+    }
+
+    .journey-star.correct {
+      background:
+        radial-gradient(circle, white 0 9%, #b9ffd2 13%, #32865a 30%, #06170d 68%);
+      box-shadow:
+        0 0 10px white,
+        0 0 28px rgba(110, 246, 164, 0.95),
+        0 0 62px rgba(70, 200, 125, 0.5);
+    }
+
+    .journey-star.wrong {
+      background:
+        radial-gradient(circle, white 0 9%, #ffb4b4 13%, #9b3a3a 30%, #1c0808 68%);
+      box-shadow:
+        0 0 10px white,
+        0 0 27px rgba(255, 105, 105, 0.95),
+        0 0 58px rgba(190, 50, 50, 0.5);
+    }
+
+    .journey-star.completed {
+      opacity: 0.45;
       cursor: default;
-      background:
-        radial-gradient(circle, white 0 7%, #ffd978 10%, #93641f 26%, #181004 65%);
-      box-shadow:
-        0 0 12px white,
-        0 0 30px rgba(255, 204, 92, 0.9),
-        0 0 70px rgba(180, 110, 30, 0.45);
+      animation: none;
     }
 
-    .current-star .star-button:hover {
-      transform: none;
-      filter: none;
+    .star-tooltip {
+      position: fixed;
+      z-index: 100;
+      min-width: 92px;
+      padding: 8px 11px;
+      border: 1px solid rgba(136, 190, 255, 0.3);
+      border-radius: 8px;
+      color: white;
+      background: rgba(4, 10, 20, 0.92);
+      font-size: 0.84rem;
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -115%);
+      transition: opacity 130ms ease;
+      backdrop-filter: blur(6px);
     }
 
-    .path-line {
-      position: absolute;
-      left: 50%;
-      top: 136px;
-      width: 2px;
-      height: 90px;
-      transform: translateX(-50%);
-      background: linear-gradient(
-        transparent,
-        rgba(231, 191, 104, 0.7),
-        transparent
-      );
-      box-shadow: 0 0 10px rgba(231, 191, 104, 0.5);
+    .star-tooltip.visible {
+      opacity: 1;
     }
 
-    .message {
-      min-height: 30px;
-      margin-top: 8px;
+    .star-tooltip .tooltip-label {
+      color: var(--muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+    }
+
+    .star-tooltip .tooltip-value {
+      margin-top: 3px;
+      color: #ffffff;
       font-size: 1.05rem;
-      color: #9fc2ef;
+      font-weight: bold;
     }
 
-    .success {
-      color: #8df0b4;
+    #hud {
+      position: fixed;
+      z-index: 50;
+      left: 26px;
+      top: 24px;
+      width: 225px;
+      padding: 15px 17px;
+      border-left: 2px solid rgba(231, 193, 109, 0.65);
+      background: linear-gradient(
+        90deg,
+        rgba(3, 8, 18, 0.72),
+        rgba(3, 8, 18, 0.12)
+      );
+      backdrop-filter: blur(5px);
     }
 
-    .failure {
-      color: #ff9b9b;
+    .brand {
+      color: var(--gold);
+      font-size: 1.35rem;
+      font-weight: bold;
+      letter-spacing: 0.21em;
     }
 
-    .reward-screen {
+    .protocol {
+      margin-top: 4px;
+      color: #9aacbf;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .hud-divider {
+      width: 55px;
+      height: 1px;
+      margin: 13px 0;
+      background: rgba(231, 193, 109, 0.5);
+    }
+
+    .hud-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 7px 0;
+      font-size: 0.82rem;
+    }
+
+    .hud-label {
+      color: var(--muted);
+    }
+
+    .hud-value {
+      color: #dce8f8;
+      text-align: right;
+    }
+
+    #instruction {
+      position: fixed;
+      z-index: 45;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      color: #95a8c3;
+      font-size: 0.88rem;
+      text-align: center;
+      letter-spacing: 0.04em;
+      transition: opacity 300ms ease;
+    }
+
+    #notification {
+      position: fixed;
+      z-index: 60;
+      left: 50%;
+      top: 21%;
+      transform: translate(-50%, -50%);
+      padding: 12px 20px;
+      border: 1px solid rgba(231, 193, 109, 0.35);
+      border-radius: 10px;
+      color: #eaf2ff;
+      background: rgba(3, 8, 18, 0.88);
+      box-shadow: 0 0 30px rgba(60, 110, 180, 0.18);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 250ms ease, transform 250ms ease;
+      backdrop-filter: blur(7px);
+    }
+
+    #notification.visible {
+      opacity: 1;
+      transform: translate(-50%, -58%);
+    }
+
+    #completion-screen {
+      position: fixed;
+      z-index: 80;
+      inset: 0;
       display: none;
-      padding: 40px 10px;
+      place-items: center;
+      background: rgba(0, 2, 8, 0.64);
+      backdrop-filter: blur(4px);
     }
 
-    .reward-screen h2 {
-      color: #f1d38d;
-      font-size: 2rem;
+    .completion-card {
+      width: min(420px, 90vw);
+      padding: 34px 28px;
+      border: 1px solid rgba(231, 193, 109, 0.45);
+      border-radius: 18px;
+      background: rgba(3, 8, 18, 0.92);
+      text-align: center;
+      box-shadow: 0 0 55px rgba(70, 120, 200, 0.2);
+    }
+
+    .completion-card h2 {
+      margin: 0;
+      color: var(--gold);
+      font-size: 1.9rem;
+    }
+
+    .completion-card p {
+      color: #aebdd0;
+      line-height: 1.5;
     }
 
     .reward {
       margin: 24px 0;
-      font-size: 2.4rem;
-      color: #8df0b4;
-      text-shadow: 0 0 20px rgba(80, 255, 150, 0.35);
+      color: var(--green);
+      font-size: 2rem;
+      font-weight: bold;
     }
 
-    .new-journey {
-      padding: 13px 24px;
-      border: 1px solid #e7bf68;
-      border-radius: 10px;
-      color: #08101d;
-      background: #e7bf68;
+    #new-journey {
+      padding: 12px 21px;
+      border: 1px solid var(--gold);
+      border-radius: 9px;
+      color: #151005;
+      background: var(--gold);
+      font-size: 0.95rem;
       font-weight: bold;
-      font-size: 1rem;
       cursor: pointer;
     }
 
-    .new-journey:hover {
-      filter: brightness(1.1);
+    #new-journey:hover {
+      filter: brightness(1.12);
     }
 
-    .footer-note {
-      margin-top: auto;
-      padding-top: 20px;
-      color: #60738f;
-      font-size: 0.8rem;
+    .journey-line {
+      stroke: rgba(117, 171, 231, 0.42);
+      stroke-width: 1.5;
+      filter: drop-shadow(0 0 4px rgba(105, 170, 240, 0.48));
+      opacity: 0;
+      transition: opacity 450ms ease;
     }
 
-    @media (max-width: 600px) {
-      .choices {
-        gap: 10px;
+    .journey-line.visible {
+      opacity: 1;
+    }
+
+    .journey-line.completed {
+      stroke: rgba(231, 193, 109, 0.58);
+      filter: drop-shadow(0 0 5px rgba(231, 193, 109, 0.5));
+    }
+
+    @media (max-width: 650px) {
+      #hud {
+        left: 14px;
+        top: 14px;
+        width: 205px;
       }
 
-      .star-button {
-        width: 78px;
-        height: 78px;
+      .brand {
+        font-size: 1.1rem;
+      }
+
+      #instruction {
+        width: 90vw;
       }
     }
   </style>
 </head>
 
 <body>
-  <div class="background-stars"></div>
+  <div id="universe">
+    <div class="nebula"></div>
+    <div id="ambient-stars"></div>
 
-  <main class="app">
-    <h1>EUNVEIL</h1>
-    <div class="subtitle">Proof of Journey Prototype</div>
+    <svg id="connection-layer"></svg>
 
-    <section class="panel">
-      <div id="game-screen">
-        <div class="rule-label">Current navigation rule</div>
-        <div class="rule">Double the current star value</div>
-        <div class="progress" id="progress">Stage 1 of 5</div>
+    <div id="journey-layer"></div>
+  </div>
 
-        <div class="journey">
-          <div class="current-star">
-            <button class="star-button" id="current-value">2</button>
-          </div>
+  <aside id="hud">
+    <div class="brand">EUNVEIL</div>
+    <div class="protocol">Proof of Journey</div>
 
-          <div class="path-line"></div>
+    <div class="hud-divider"></div>
 
-          <div class="choices" id="choices"></div>
-        </div>
-
-        <div class="message" id="message">
-          Choose the star that correctly continues the journey.
-        </div>
-      </div>
-
-      <div class="reward-screen" id="reward-screen">
-        <h2>Journey Complete</h2>
-
-        <p>Your route has been verified.</p>
-
-        <div class="reward">+10 Test EUNVEIL</div>
-
-        <p>Block discovered in the prototype universe.</p>
-
-        <button class="new-journey" id="new-journey">
-          Begin New Journey
-        </button>
-      </div>
-    </section>
-
-    <div class="footer-note">
-      Prototype only — no real coins or blockchain transactions.
+    <div class="hud-row">
+      <span class="hud-label">Journey</span>
+      <span class="hud-value" id="journey-id">000001</span>
     </div>
-  </main>
+
+    <div class="hud-row">
+      <span class="hud-label">Rule</span>
+      <span class="hud-value" id="rule-display">Multiply by 2</span>
+    </div>
+
+    <div class="hud-row">
+      <span class="hud-label">Stage</span>
+      <span class="hud-value" id="stage-display">0 / 5</span>
+    </div>
+
+    <div class="hud-row">
+      <span class="hud-label">Reward</span>
+      <span class="hud-value">10 Test EUNVEIL</span>
+    </div>
+  </aside>
+
+  <div id="instruction">
+    Hover over the golden star, then click it to begin.
+  </div>
+
+  <div id="notification"></div>
+
+  <div class="star-tooltip" id="tooltip">
+    <div class="tooltip-label">Star value</div>
+    <div class="tooltip-value" id="tooltip-value"></div>
+  </div>
+
+  <section id="completion-screen">
+    <div class="completion-card">
+      <h2>Journey Complete</h2>
+
+      <p>
+        The complete path has been verified in the prototype universe.
+      </p>
+
+      <div class="reward">+10 Test EUNVEIL</div>
+
+      <button id="new-journey">
+        Begin New Journey
+      </button>
+    </div>
+  </section>
 
   <script>
     const totalStages = 5;
 
-    let stage = 1;
     let currentValue = 2;
-    let locked = false;
+    let currentStage = 0;
+    let currentStar = null;
+    let choicesOpen = false;
+    let journeyNumber = 1;
 
-    const currentValueElement =
-      document.getElementById("current-value");
+    const ambientLayer =
+      document.getElementById("ambient-stars");
 
-    const choicesElement =
-      document.getElementById("choices");
+    const journeyLayer =
+      document.getElementById("journey-layer");
 
-    const progressElement =
-      document.getElementById("progress");
+    const connectionLayer =
+      document.getElementById("connection-layer");
 
-    const messageElement =
-      document.getElementById("message");
+    const tooltip =
+      document.getElementById("tooltip");
 
-    const gameScreen =
-      document.getElementById("game-screen");
+    const tooltipValue =
+      document.getElementById("tooltip-value");
 
-    const rewardScreen =
-      document.getElementById("reward-screen");
+    const instruction =
+      document.getElementById("instruction");
+
+    const notification =
+      document.getElementById("notification");
+
+    const stageDisplay =
+      document.getElementById("stage-display");
+
+    const journeyId =
+      document.getElementById("journey-id");
+
+    const completionScreen =
+      document.getElementById("completion-screen");
 
     const newJourneyButton =
       document.getElementById("new-journey");
 
-    function shuffle(values) {
-      return values.sort(() => Math.random() - 0.5);
+    function randomBetween(min, max) {
+      return Math.random() * (max - min) + min;
     }
 
-    function createChoices() {
-      locked = false;
+    function createAmbientUniverse() {
+      ambientLayer.innerHTML = "";
 
-      currentValueElement.textContent = currentValue;
-      progressElement.textContent =
-        `Stage ${stage} of ${totalStages}`;
+      const starCount =
+        Math.min(280, Math.floor(window.innerWidth / 5));
 
-      messageElement.className = "message";
-      messageElement.textContent =
-        "Choose the star that correctly continues the journey.";
+      const tints = [
+        [235, 244, 255],
+        [177, 211, 255],
+        [255, 226, 170],
+        [210, 225, 255]
+      ];
 
-      choicesElement.innerHTML = "";
+      for (let i = 0; i < starCount; i++) {
+        const star = document.createElement("div");
+        star.className = "ambient-star";
 
-      const correctValue = currentValue * 2;
+        const depth = Math.random();
 
-      const possibleChoices = shuffle([
-        correctValue,
-        correctValue + 2,
-        Math.max(1, correctValue - 1)
-      ]);
+        let size;
+        let opacity;
 
-      possibleChoices.forEach((value) => {
-        const button = document.createElement("button");
+        if (depth < 0.58) {
+          size = randomBetween(1, 2.2);
+          opacity = randomBetween(0.2, 0.5);
+        } else if (depth < 0.9) {
+          size = randomBetween(2.2, 3.7);
+          opacity = randomBetween(0.42, 0.72);
+        } else {
+          size = randomBetween(3.8, 6);
+          opacity = randomBetween(0.6, 0.88);
+        }
 
-        button.className = "star-button";
-        button.textContent = value;
+        const tint =
+          tints[Math.floor(Math.random() * tints.length)];
 
-        button.addEventListener("click", () => {
-          chooseStar(value, correctValue);
+        star.style.left = `${Math.random() * 100}%`;
+        star.style.top = `${Math.random() * 100}%`;
+        star.style.width = `${size}px`;
+        star.style.height = `${size}px`;
+
+        star.style.background =
+          `rgb(${tint[0]}, ${tint[1]}, ${tint[2]})`;
+
+        star.style.boxShadow =
+          `0 0 ${size * 2.7}px rgba(${tint[0]}, ${tint[1]}, ${tint[2]}, ${opacity})`;
+
+        star.style.setProperty(
+          "--low-opacity",
+          Math.max(0.12, opacity - 0.18)
+        );
+
+        star.style.setProperty(
+          "--high-opacity",
+          Math.min(1, opacity + 0.16)
+        );
+
+        star.style.setProperty(
+          "--twinkle-speed",
+          `${randomBetween(2.5, 7)}s`
+        );
+
+        star.style.setProperty(
+          "--twinkle-delay",
+          `${randomBetween(-7, 0)}s`
+        );
+
+        ambientLayer.appendChild(star);
+      }
+    }
+
+    function createJourneyStar({
+      x,
+      y,
+      size,
+      value,
+      type,
+      onClick
+    }) {
+      const star = document.createElement("button");
+
+      star.className = `journey-star ${type}`;
+      star.style.left = `${x}px`;
+      star.style.top = `${y}px`;
+      star.style.width = `${size}px`;
+      star.style.height = `${size}px`;
+      star.dataset.value = value;
+
+      if (type === "choice") {
+        star.addEventListener("mouseenter", (event) => {
+          showTooltip(event, value);
         });
 
-        choicesElement.appendChild(button);
+        star.addEventListener("mousemove", (event) => {
+          moveTooltip(event);
+        });
+
+        star.addEventListener("mouseleave", hideTooltip);
+      }
+
+      if (onClick) {
+        star.addEventListener("click", onClick);
+      }
+
+      journeyLayer.appendChild(star);
+
+      requestAnimationFrame(() => {
+        if (type === "choice") {
+          star.classList.add("visible");
+        }
+      });
+
+      return star;
+    }
+
+    function showTooltip(event, value) {
+      tooltipValue.textContent = value;
+      moveTooltip(event);
+      tooltip.classList.add("visible");
+    }
+
+    function moveTooltip(event) {
+      tooltip.style.left = `${event.clientX}px`;
+      tooltip.style.top = `${event.clientY - 12}px`;
+    }
+
+    function hideTooltip() {
+      tooltip.classList.remove("visible");
+    }
+
+    function createLine(fromStar, toStar) {
+      const fromX =
+        parseFloat(fromStar.style.left);
+
+      const fromY =
+        parseFloat(fromStar.style.top);
+
+      const toX =
+        parseFloat(toStar.style.left);
+
+      const toY =
+        parseFloat(toStar.style.top);
+
+      const line =
+        document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "line"
+        );
+
+      line.setAttribute("x1", fromX);
+      line.setAttribute("y1", fromY);
+      line.setAttribute("x2", toX);
+      line.setAttribute("y2", toY);
+      line.setAttribute("class", "journey-line");
+
+      connectionLayer.appendChild(line);
+
+      requestAnimationFrame(() => {
+        line.classList.add("visible");
+      });
+
+      return line;
+    }
+
+    function shuffle(values) {
+      const copy = [...values];
+
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j =
+          Math.floor(Math.random() * (i + 1));
+
+        [copy[i], copy[j]] =
+          [copy[j], copy[i]];
+      }
+
+      return copy;
+    }
+
+    function beginJourney() {
+      journeyLayer.innerHTML = "";
+      connectionLayer.innerHTML = "";
+
+      currentStage = 0;
+      currentValue =
+        [2, 3, 4, 5][Math.floor(Math.random() * 4)];
+
+      choicesOpen = false;
+
+      journeyId.textContent =
+        String(journeyNumber).padStart(6, "0");
+
+      stageDisplay.textContent =
+        `${currentStage} / ${totalStages}`;
+
+      completionScreen.style.display = "none";
+
+      instruction.textContent =
+        "Hover over the golden star, then click it to begin.";
+
+      currentStar = createJourneyStar({
+        x: window.innerWidth * 0.5,
+        y: window.innerHeight * 0.52,
+        size: 42,
+        value: currentValue,
+        type: "active",
+        onClick: revealChoices
       });
     }
 
-    function chooseStar(selectedValue, correctValue) {
-      if (locked) {
+    function revealChoices() {
+      if (choicesOpen) {
         return;
       }
 
-      locked = true;
+      choicesOpen = true;
 
-      if (selectedValue === correctValue) {
-        messageElement.className = "message success";
-        messageElement.textContent =
-          `Correct. Star ${correctValue} has been unveiled.`;
+      instruction.textContent =
+        "Hover over nearby stars to inspect their values.";
 
-        currentValue = correctValue;
+      const correctValue = currentValue * 2;
 
-        if (stage === totalStages) {
-          setTimeout(completeJourney, 650);
-          return;
-        }
+      const values = shuffle([
+        correctValue,
+        correctValue + Math.floor(randomBetween(2, 6)),
+        Math.max(1, correctValue - Math.floor(randomBetween(1, 4)))
+      ]);
 
-        stage++;
+      const baseX =
+        parseFloat(currentStar.style.left);
 
-        setTimeout(createChoices, 650);
-      } else {
-        messageElement.className = "message failure";
-        messageElement.textContent =
-          "That route ended. Recalculating this stage...";
+      const baseY =
+        parseFloat(currentStar.style.top);
 
-        setTimeout(createChoices, 900);
+      const radius =
+        Math.min(
+          230,
+          Math.max(155, window.innerWidth * 0.16)
+        );
+
+      const angles = shuffle([
+        -58,
+        2,
+        61
+      ]);
+
+      values.forEach((value, index) => {
+        const radians =
+          angles[index] * Math.PI / 180;
+
+        let x =
+          baseX + Math.cos(radians) * radius;
+
+        let y =
+          baseY + Math.sin(radians) * radius;
+
+        x = Math.max(60, Math.min(window.innerWidth - 60, x));
+        y = Math.max(115, Math.min(window.innerHeight - 75, y));
+
+        const size =
+          randomBetween(28, 43);
+
+        const choiceStar = createJourneyStar({
+          x,
+          y,
+          size,
+          value,
+          type: "choice",
+          onClick: () => {
+            selectChoice(
+              choiceStar,
+              value,
+              correctValue
+            );
+          }
+        });
+
+        const line =
+          createLine(currentStar, choiceStar);
+
+        choiceStar.dataset.lineId =
+          Array.from(connectionLayer.children)
+            .indexOf(line);
+      });
+    }
+
+    function selectChoice(
+      selectedStar,
+      selectedValue,
+      correctValue
+    ) {
+      hideTooltip();
+
+      if (!choicesOpen) {
+        return;
       }
+
+      choicesOpen = false;
+
+      const allChoices =
+        Array.from(
+          journeyLayer.querySelectorAll(".choice")
+        );
+
+      if (selectedValue !== correctValue) {
+        selectedStar.classList.add("wrong");
+
+        showNotification(
+          "That route ended. Try another nearby star."
+        );
+
+        setTimeout(() => {
+          selectedStar.classList.remove("wrong");
+          choicesOpen = true;
+        }, 850);
+
+        return;
+      }
+
+      selectedStar.classList.add("correct");
+
+      allChoices.forEach((star) => {
+        if (star !== selectedStar) {
+          star.style.opacity = "0";
+          star.style.pointerEvents = "none";
+
+          setTimeout(() => {
+            star.remove();
+          }, 350);
+        }
+      });
+
+      currentStar.classList.remove("active");
+      currentStar.classList.add("completed");
+      currentStar.style.pointerEvents = "none";
+
+      const lines =
+        Array.from(
+          connectionLayer.querySelectorAll(".journey-line")
+        );
+
+      lines.forEach((line) => {
+        const endX =
+          Number(line.getAttribute("x2"));
+
+        const endY =
+          Number(line.getAttribute("y2"));
+
+        const selectedX =
+          parseFloat(selectedStar.style.left);
+
+        const selectedY =
+          parseFloat(selectedStar.style.top);
+
+        if (
+          Math.abs(endX - selectedX) < 1 &&
+          Math.abs(endY - selectedY) < 1
+        ) {
+          line.classList.add("completed");
+        } else {
+          line.style.opacity = "0";
+
+          setTimeout(() => {
+            line.remove();
+          }, 350);
+        }
+      });
+
+      selectedStar.classList.remove("choice");
+      selectedStar.classList.remove("correct");
+      selectedStar.classList.add("active");
+
+      currentStar = selectedStar;
+      currentValue = correctValue;
+      currentStage++;
+
+      stageDisplay.textContent =
+        `${currentStage} / ${totalStages}`;
+
+      showNotification(
+        `Star ${correctValue} unveiled`
+      );
+
+      if (currentStage >= totalStages) {
+        instruction.textContent =
+          "Journey verified.";
+
+        setTimeout(completeJourney, 900);
+        return;
+      }
+
+      instruction.textContent =
+        "Click the golden star to continue the journey.";
+
+      currentStar.addEventListener(
+        "click",
+        revealChoices,
+        { once: true }
+      );
+    }
+
+    function showNotification(text) {
+      notification.textContent = text;
+      notification.classList.add("visible");
+
+      setTimeout(() => {
+        notification.classList.remove("visible");
+      }, 1150);
     }
 
     function completeJourney() {
-      gameScreen.style.display = "none";
-      rewardScreen.style.display = "block";
+      completionScreen.style.display = "grid";
     }
 
-    function beginNewJourney() {
-      stage = 1;
+    newJourneyButton.addEventListener("click", () => {
+      journeyNumber++;
+      beginJourney();
+    });
 
-      const startingValues = [2, 3, 4, 5];
-      currentValue =
-        startingValues[
-          Math.floor(Math.random() * startingValues.length)
-        ];
+    window.addEventListener("resize", () => {
+      createAmbientUniverse();
+    });
 
-      rewardScreen.style.display = "none";
-      gameScreen.style.display = "block";
-
-      createChoices();
-    }
-
-    newJourneyButton.addEventListener(
-      "click",
-      beginNewJourney
-    );
-
-    createChoices();
+    createAmbientUniverse();
+    beginJourney();
   </script>
 </body>
 </html>
