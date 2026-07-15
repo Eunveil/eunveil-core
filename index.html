@@ -2,80 +2,415 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Eunveil</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Eunveil — Proof of Journey</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      background: black;
+      min-height: 100vh;
       overflow: hidden;
-      width: 100vw;
-      height: 100vh;
+      color: white;
+      font-family: Arial, sans-serif;
+      background:
+        radial-gradient(circle at center, #101d35 0%, #030711 45%, #000 100%);
     }
 
-    .star {
+    .background-stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.7) 1px, transparent 1px),
+        radial-gradient(circle, rgba(130,180,255,.5) 1px, transparent 1px);
+      background-position: 0 0, 40px 60px;
+      background-size: 90px 90px, 130px 130px;
+      opacity: 0.35;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      width: min(900px, 94vw);
+      min-height: 100vh;
+      margin: auto;
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      letter-spacing: 0.28em;
+      color: #e7bf68;
+      text-shadow: 0 0 22px rgba(231, 191, 104, 0.35);
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: #b6c7df;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .panel {
+      width: 100%;
+      margin-top: 32px;
+      padding: 22px;
+      text-align: center;
+      border: 1px solid rgba(231, 191, 104, 0.35);
+      border-radius: 18px;
+      background: rgba(3, 8, 18, 0.78);
+      box-shadow: 0 0 35px rgba(70, 120, 200, 0.12);
+      backdrop-filter: blur(8px);
+    }
+
+    .rule-label {
+      color: #8298b8;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+    }
+
+    .rule {
+      margin-top: 8px;
+      font-size: 1.4rem;
+      color: #f1d38d;
+    }
+
+    .progress {
+      margin-top: 14px;
+      color: #a7bad4;
+    }
+
+    .journey {
+      position: relative;
+      width: 100%;
+      min-height: 390px;
+      margin-top: 20px;
+    }
+
+    .current-star {
       position: absolute;
-      width: 14px;
-      height: 14px;
-      background: white;
-      border-radius: 50%;
-      box-shadow:
-        0 0 8px white,
-        0 0 18px #5ca8ff,
-        0 0 35px #5ca8ff;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-
-    .star:hover {
-      transform: scale(1.5);
-    }
-
-    #first-star {
       left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
+      top: 42px;
+      transform: translateX(-50%);
     }
 
-    #first-star:hover {
-      transform: translate(-50%, -50%) scale(1.5);
+    .choices {
+      position: absolute;
+      left: 50%;
+      top: 220px;
+      width: min(650px, 100%);
+      transform: translateX(-50%);
+      display: flex;
+      justify-content: space-around;
+      gap: 20px;
+    }
+
+    .star-button {
+      width: 95px;
+      height: 95px;
+      border: none;
+      border-radius: 50%;
+      color: white;
+      font-size: 1.25rem;
+      font-weight: bold;
+      cursor: pointer;
+      background:
+        radial-gradient(circle, white 0 7%, #89bbff 10%, #284d87 24%, #09111f 65%);
+      box-shadow:
+        0 0 12px white,
+        0 0 28px rgba(91, 157, 255, 0.85),
+        0 0 65px rgba(50, 100, 190, 0.45);
+      transition: transform 0.18s ease, filter 0.18s ease;
+    }
+
+    .star-button:hover {
+      transform: scale(1.12);
+      filter: brightness(1.2);
+    }
+
+    .current-star .star-button {
+      cursor: default;
+      background:
+        radial-gradient(circle, white 0 7%, #ffd978 10%, #93641f 26%, #181004 65%);
+      box-shadow:
+        0 0 12px white,
+        0 0 30px rgba(255, 204, 92, 0.9),
+        0 0 70px rgba(180, 110, 30, 0.45);
+    }
+
+    .current-star .star-button:hover {
+      transform: none;
+      filter: none;
+    }
+
+    .path-line {
+      position: absolute;
+      left: 50%;
+      top: 136px;
+      width: 2px;
+      height: 90px;
+      transform: translateX(-50%);
+      background: linear-gradient(
+        transparent,
+        rgba(231, 191, 104, 0.7),
+        transparent
+      );
+      box-shadow: 0 0 10px rgba(231, 191, 104, 0.5);
+    }
+
+    .message {
+      min-height: 30px;
+      margin-top: 8px;
+      font-size: 1.05rem;
+      color: #9fc2ef;
+    }
+
+    .success {
+      color: #8df0b4;
+    }
+
+    .failure {
+      color: #ff9b9b;
+    }
+
+    .reward-screen {
+      display: none;
+      padding: 40px 10px;
+    }
+
+    .reward-screen h2 {
+      color: #f1d38d;
+      font-size: 2rem;
+    }
+
+    .reward {
+      margin: 24px 0;
+      font-size: 2.4rem;
+      color: #8df0b4;
+      text-shadow: 0 0 20px rgba(80, 255, 150, 0.35);
+    }
+
+    .new-journey {
+      padding: 13px 24px;
+      border: 1px solid #e7bf68;
+      border-radius: 10px;
+      color: #08101d;
+      background: #e7bf68;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .new-journey:hover {
+      filter: brightness(1.1);
+    }
+
+    .footer-note {
+      margin-top: auto;
+      padding-top: 20px;
+      color: #60738f;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 600px) {
+      .choices {
+        gap: 10px;
+      }
+
+      .star-button {
+        width: 78px;
+        height: 78px;
+      }
     }
   </style>
 </head>
 
 <body>
+  <div class="background-stars"></div>
 
-  <div class="star" id="first-star"></div>
+  <main class="app">
+    <h1>EUNVEIL</h1>
+    <div class="subtitle">Proof of Journey Prototype</div>
+
+    <section class="panel">
+      <div id="game-screen">
+        <div class="rule-label">Current navigation rule</div>
+        <div class="rule">Double the current star value</div>
+        <div class="progress" id="progress">Stage 1 of 5</div>
+
+        <div class="journey">
+          <div class="current-star">
+            <button class="star-button" id="current-value">2</button>
+          </div>
+
+          <div class="path-line"></div>
+
+          <div class="choices" id="choices"></div>
+        </div>
+
+        <div class="message" id="message">
+          Choose the star that correctly continues the journey.
+        </div>
+      </div>
+
+      <div class="reward-screen" id="reward-screen">
+        <h2>Journey Complete</h2>
+
+        <p>Your route has been verified.</p>
+
+        <div class="reward">+10 Test EUNVEIL</div>
+
+        <p>Block discovered in the prototype universe.</p>
+
+        <button class="new-journey" id="new-journey">
+          Begin New Journey
+        </button>
+      </div>
+    </section>
+
+    <div class="footer-note">
+      Prototype only — no real coins or blockchain transactions.
+    </div>
+  </main>
 
   <script>
-    let starCount = 1;
-    function createStar() {
-      const star = document.createElement("div");
-      starCount++;
+    const totalStages = 5;
 
-star.dataset.id = starCount;
-    
+    let stage = 1;
+    let currentValue = 2;
+    let locked = false;
 
-      star.className = "star";
+    const currentValueElement =
+      document.getElementById("current-value");
 
-      const x = Math.random() * (window.innerWidth - 30);
-      const y = Math.random() * (window.innerHeight - 30);
+    const choicesElement =
+      document.getElementById("choices");
 
-      star.style.left = x + "px";
-      star.style.top = y + "px";
+    const progressElement =
+      document.getElementById("progress");
 
-      star.addEventListener("click", createStar);
+    const messageElement =
+      document.getElementById("message");
 
-      console.log("Created Star #" + star.dataset.id);
-      document.body.appendChild(star);
+    const gameScreen =
+      document.getElementById("game-screen");
+
+    const rewardScreen =
+      document.getElementById("reward-screen");
+
+    const newJourneyButton =
+      document.getElementById("new-journey");
+
+    function shuffle(values) {
+      return values.sort(() => Math.random() - 0.5);
     }
 
-    document
-      .getElementById("first-star")
-      .addEventListener("click", createStar);
-  </script>
+    function createChoices() {
+      locked = false;
 
+      currentValueElement.textContent = currentValue;
+      progressElement.textContent =
+        `Stage ${stage} of ${totalStages}`;
+
+      messageElement.className = "message";
+      messageElement.textContent =
+        "Choose the star that correctly continues the journey.";
+
+      choicesElement.innerHTML = "";
+
+      const correctValue = currentValue * 2;
+
+      const possibleChoices = shuffle([
+        correctValue,
+        correctValue + 2,
+        Math.max(1, correctValue - 1)
+      ]);
+
+      possibleChoices.forEach((value) => {
+        const button = document.createElement("button");
+
+        button.className = "star-button";
+        button.textContent = value;
+
+        button.addEventListener("click", () => {
+          chooseStar(value, correctValue);
+        });
+
+        choicesElement.appendChild(button);
+      });
+    }
+
+    function chooseStar(selectedValue, correctValue) {
+      if (locked) {
+        return;
+      }
+
+      locked = true;
+
+      if (selectedValue === correctValue) {
+        messageElement.className = "message success";
+        messageElement.textContent =
+          `Correct. Star ${correctValue} has been unveiled.`;
+
+        currentValue = correctValue;
+
+        if (stage === totalStages) {
+          setTimeout(completeJourney, 650);
+          return;
+        }
+
+        stage++;
+
+        setTimeout(createChoices, 650);
+      } else {
+        messageElement.className = "message failure";
+        messageElement.textContent =
+          "That route ended. Recalculating this stage...";
+
+        setTimeout(createChoices, 900);
+      }
+    }
+
+    function completeJourney() {
+      gameScreen.style.display = "none";
+      rewardScreen.style.display = "block";
+    }
+
+    function beginNewJourney() {
+      stage = 1;
+
+      const startingValues = [2, 3, 4, 5];
+      currentValue =
+        startingValues[
+          Math.floor(Math.random() * startingValues.length)
+        ];
+
+      rewardScreen.style.display = "none";
+      gameScreen.style.display = "block";
+
+      createChoices();
+    }
+
+    newJourneyButton.addEventListener(
+      "click",
+      beginNewJourney
+    );
+
+    createChoices();
+  </script>
 </body>
 </html>
