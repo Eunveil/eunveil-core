@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Eunveil</title>
+
+<style>
+
+body{
+    margin:0;
+    background:black;
+    overflow:hidden;
+}
+
+.star{
+    width:18px;
+    height:18px;
+    background:white;
+
+    border-radius:50%;
+
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    box-shadow:
+        0 0 10px white,
+        0 0 25px #5ca8ff,
+        0 0 50px #5ca8ff;
+
+    cursor:pointer;
+
+    transition:.3s;
+}
+
+.star:hover{
+    transform:
+        translate(-50%,-50%)
+        scale(1.5);
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="star"></div>
+
+</body>
+
+</html>
