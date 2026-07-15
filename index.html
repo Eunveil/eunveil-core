@@ -50,8 +50,13 @@
   <div class="star" id="first-star"></div>
 
   <script>
+    let starCount = 1;
     function createStar() {
       const star = document.createElement("div");
+      starCount++;
+
+star.dataset.id = starCount;
+    
 
       star.className = "star";
 
@@ -63,6 +68,7 @@
 
       star.addEventListener("click", createStar);
 
+      console.log("Created Star #" + star.dataset.id);
       document.body.appendChild(star);
     }
 
