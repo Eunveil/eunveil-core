@@ -1,57 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Eunveil</title>
+  <title>Eunveil</title>
 
-<style>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
 
-body{
-    margin:0;
-    background:black;
-    overflow:hidden;
-}
+    .star {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: white;
+      border-radius: 50%;
+      box-shadow:
+        0 0 8px white,
+        0 0 18px #5ca8ff,
+        0 0 35px #5ca8ff;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
 
-.star{
-    width:18px;
-    height:18px;
-    background:white;
+    .star:hover {
+      transform: scale(1.5);
+    }
 
-    border-radius:50%;
+    #first-star {
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
 
-    position:absolute;
-
-    left:50%;
-    top:50%;
-
-    transform:translate(-50%,-50%);
-
-    box-shadow:
-        0 0 10px white,
-        0 0 25px #5ca8ff,
-        0 0 50px #5ca8ff;
-
-    cursor:pointer;
-
-    transition:.3s;
-}
-
-.star:hover{
-    transform:
-        translate(-50%,-50%)
-        scale(1.5);
-}
-
-</style>
-
+    #first-star:hover {
+      transform: translate(-50%, -50%) scale(1.5);
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="star"></div>
+  <div class="star" id="first-star"></div>
+
+  <script>
+    function createStar() {
+      const star = document.createElement("div");
+
+      star.className = "star";
+
+      const x = Math.random() * (window.innerWidth - 30);
+      const y = Math.random() * (window.innerHeight - 30);
+
+      star.style.left = x + "px";
+      star.style.top = y + "px";
+
+      star.addEventListener("click", createStar);
+
+      document.body.appendChild(star);
+    }
+
+    document
+      .getElementById("first-star")
+      .addEventListener("click", createStar);
+  </script>
 
 </body>
-
 </html>
