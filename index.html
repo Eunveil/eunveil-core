@@ -457,6 +457,133 @@
       to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.2); }
     }
 
+
+
+    /* v0.11 — explorer calibration */
+    #calibration-layer {
+      position: absolute;
+      z-index: 45;
+      inset: 0;
+      display: none;
+      pointer-events: auto;
+      background: radial-gradient(circle at 50% 50%, rgba(8,20,39,.16), rgba(0,2,8,.48));
+      backdrop-filter: blur(1.5px);
+    }
+
+    #calibration-layer.visible { display: block; }
+
+    #calibration-target,
+    #calibration-drag {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 220px;
+      height: 180px;
+      transform: translate(-50%, -50%);
+    }
+
+    #calibration-target {
+      opacity: .42;
+      pointer-events: none;
+      filter: drop-shadow(0 0 16px rgba(123,188,255,.3));
+    }
+
+    #calibration-drag {
+      cursor: grab;
+      touch-action: none;
+      transition: filter .18s ease;
+    }
+
+    #calibration-drag.dragging { cursor: grabbing; filter: brightness(1.18); }
+
+    .cal-star {
+      position: absolute;
+      width: 27px;
+      height: 27px;
+      margin: -13.5px 0 0 -13.5px;
+      border-radius: 50%;
+    }
+
+    #calibration-target .cal-star {
+      background: radial-gradient(circle, white 0 8%, rgba(150,207,255,.9) 14%, rgba(69,115,167,.58) 33%, rgba(4,14,27,.08) 70%);
+      box-shadow: 0 0 8px rgba(255,255,255,.5), 0 0 26px rgba(112,183,255,.44), 0 0 55px rgba(61,124,196,.2);
+    }
+
+    #calibration-drag .cal-star {
+      background: radial-gradient(circle, white 0 8%, #ffe8a4 14%, #c68d35 33%, #1a1005 70%);
+      box-shadow: 0 0 10px white, 0 0 29px rgba(255,221,132,.9), 0 0 66px rgba(210,145,48,.44);
+    }
+
+    .cal-star.one { left: 50%; top: 12%; }
+    .cal-star.two { left: 18%; top: 78%; }
+    .cal-star.three { left: 82%; top: 70%; }
+
+    .cal-line {
+      position: absolute;
+      height: 1px;
+      transform-origin: 0 50%;
+      pointer-events: none;
+    }
+
+    #calibration-target .cal-line { background: rgba(122,190,255,.3); box-shadow: 0 0 7px rgba(100,170,240,.32); }
+    #calibration-drag .cal-line { background: rgba(232,196,118,.45); box-shadow: 0 0 7px rgba(232,196,118,.36); }
+
+    .cal-line.a { left: 50%; top: 12%; width: 137px; transform: rotate(116deg); }
+    .cal-line.b { left: 18%; top: 78%; width: 143px; transform: rotate(-7deg); }
+    .cal-line.c { left: 82%; top: 70%; width: 132px; transform: rotate(-118deg); }
+
+    #calibration-readout {
+      position: fixed;
+      z-index: 70;
+      left: 50%;
+      bottom: 88px;
+      transform: translateX(-50%);
+      width: min(420px, 82vw);
+      text-align: center;
+      pointer-events: none;
+    }
+
+    #calibration-title {
+      color: var(--gold-bright);
+      font-size: .78rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    #signal-strength {
+      margin-top: 8px;
+      color: #dceaff;
+      font-variant-numeric: tabular-nums;
+      font-size: 1rem;
+    }
+
+    #signal-meter {
+      height: 3px;
+      margin-top: 10px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: rgba(126,159,202,.15);
+    }
+
+    #signal-meter-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #6caeff, #e8c476, #8ff0b8);
+      box-shadow: 0 0 13px rgba(123,188,255,.7);
+      transition: width .1s linear;
+    }
+
+    #calibration-layer.locked #calibration-drag {
+      filter: drop-shadow(0 0 25px rgba(126,255,174,.75));
+      pointer-events: none;
+    }
+
+    #calibration-layer.locked #calibration-drag .cal-star {
+      background: radial-gradient(circle, white 0 8%, #caffdc 14%, #49ad73 33%, #071a0e 70%);
+      box-shadow: 0 0 12px white, 0 0 34px rgba(126,255,174,.92), 0 0 78px rgba(63,200,118,.52);
+    }
+
     @media (max-width: 760px) {
       #hud { left: 12px; top: 12px; width: 220px; padding: 13px 15px; }
       #hash-panel { left: 12px; right: 12px; top: auto; bottom: 98px; width: auto; }
@@ -476,6 +603,23 @@
 
     <div id="start-ring"></div>
     <button id="start-star" aria-label="Begin automatic journey"></button>
+
+    <section id="calibration-layer" aria-live="polite">
+      <div id="calibration-target" aria-hidden="true">
+        <span class="cal-line a"></span><span class="cal-line b"></span><span class="cal-line c"></span>
+        <span class="cal-star one"></span><span class="cal-star two"></span><span class="cal-star three"></span>
+      </div>
+      <div id="calibration-drag" role="button" aria-label="Drag this constellation onto the distant signal">
+        <span class="cal-line a"></span><span class="cal-line b"></span><span class="cal-line c"></span>
+        <span class="cal-star one"></span><span class="cal-star two"></span><span class="cal-star three"></span>
+      </div>
+      <div id="calibration-readout">
+        <div id="calibration-title">Align explorer with distant signal</div>
+        <div id="signal-strength">Signal strength 0%</div>
+        <div id="signal-meter"><div id="signal-meter-fill"></div></div>
+      </div>
+    </section>
+
   </main>
 
   <aside id="hud">
@@ -538,6 +682,11 @@
     const winningHashEl = document.getElementById('winning-hash');
     const journeyNumberEl = document.getElementById('journey-number');
     const newJourneyButton = document.getElementById('new-journey');
+    const calibrationLayer = document.getElementById('calibration-layer');
+    const calibrationDrag = document.getElementById('calibration-drag');
+    const calibrationTarget = document.getElementById('calibration-target');
+    const signalStrengthEl = document.getElementById('signal-strength');
+    const signalMeterFill = document.getElementById('signal-meter-fill');
 
     let running = false;
     let attempts = 0;
@@ -547,6 +696,10 @@
     let startedAt = 0;
     let lastNodeAttempt = 0;
     let previousPoint = null;
+    let calibrating = false;
+    let dragPointerId = null;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
 
     function randomBetween(min, max) {
       return Math.random() * (max - min) + min;
@@ -660,6 +813,107 @@
       }
     }
 
+    function calibrationCenter(element) {
+      const rect = element.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
+
+    function updateCalibrationStrength() {
+      const drag = calibrationCenter(calibrationDrag);
+      const target = calibrationCenter(calibrationTarget);
+      const distance = Math.hypot(drag.x - target.x, drag.y - target.y);
+      const strength = Math.max(0, Math.min(100, Math.round(100 - (distance / 3.25))));
+      signalStrengthEl.textContent = `Signal strength ${strength}%`;
+      signalMeterFill.style.width = `${strength}%`;
+      if (distance <= 18 && calibrating) lockSignal();
+    }
+
+    function positionCalibrationConstellation() {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.min(window.innerWidth, window.innerHeight) * randomBetween(.21, .31);
+      const targetX = window.innerWidth / 2;
+      const targetY = window.innerHeight / 2;
+      const x = targetX + Math.cos(angle) * distance;
+      const y = targetY + Math.sin(angle) * distance;
+      calibrationDrag.style.left = `${x}px`;
+      calibrationDrag.style.top = `${y}px`;
+      calibrationDrag.style.transform = 'translate(-50%, -50%)';
+      updateCalibrationStrength();
+    }
+
+    function beginCalibration() {
+      if (running || calibrating) return;
+      calibrating = true;
+      startStar.disabled = true;
+      startStar.style.opacity = '.2';
+      document.getElementById('start-ring').style.opacity = '.2';
+      calibrationLayer.classList.remove('locked');
+      calibrationLayer.classList.add('visible');
+      hudStatus.textContent = 'Calibrating';
+      hudStatus.className = 'value gold';
+      liveHashEl.textContent = 'Awaiting explorer alignment…';
+      statusText.innerHTML = 'Drag the golden constellation onto the <strong>distant blue signal</strong>.';
+      signalStrengthEl.textContent = 'Signal strength 0%';
+      signalMeterFill.style.width = '0%';
+      requestAnimationFrame(positionCalibrationConstellation);
+    }
+
+    function lockSignal() {
+      calibrating = false;
+      calibrationLayer.classList.add('locked');
+      calibrationDrag.style.left = '50%';
+      calibrationDrag.style.top = '50%';
+      signalStrengthEl.textContent = 'Signal locked';
+      signalMeterFill.style.width = '100%';
+      hudStatus.textContent = 'Signal locked';
+      statusText.innerHTML = '<strong>Signal locked.</strong> Synchronizing explorer…';
+      setTimeout(() => {
+        calibrationLayer.classList.remove('visible', 'locked');
+        startStar.style.opacity = '1';
+        document.getElementById('start-ring').style.opacity = '1';
+        explore().catch(handleExploreError);
+      }, 950);
+    }
+
+    function handleExploreError(error) {
+      console.error(error);
+      running = false;
+      calibrating = false;
+      startStar.disabled = false;
+      hudStatus.textContent = 'Browser error';
+      statusText.textContent = 'This browser could not access its SHA-256 engine.';
+    }
+
+    calibrationDrag.addEventListener('pointerdown', event => {
+      if (!calibrating) return;
+      dragPointerId = event.pointerId;
+      calibrationDrag.setPointerCapture(event.pointerId);
+      const rect = calibrationDrag.getBoundingClientRect();
+      dragOffsetX = event.clientX - (rect.left + rect.width / 2);
+      dragOffsetY = event.clientY - (rect.top + rect.height / 2);
+      calibrationDrag.classList.add('dragging');
+    });
+
+    calibrationDrag.addEventListener('pointermove', event => {
+      if (!calibrating || event.pointerId !== dragPointerId) return;
+      const halfW = calibrationDrag.offsetWidth / 2;
+      const halfH = calibrationDrag.offsetHeight / 2;
+      const x = Math.max(halfW, Math.min(window.innerWidth - halfW, event.clientX - dragOffsetX));
+      const y = Math.max(halfH, Math.min(window.innerHeight - halfH, event.clientY - dragOffsetY));
+      calibrationDrag.style.left = `${x}px`;
+      calibrationDrag.style.top = `${y}px`;
+      updateCalibrationStrength();
+    });
+
+    function endCalibrationDrag(event) {
+      if (event.pointerId !== dragPointerId) return;
+      calibrationDrag.classList.remove('dragging');
+      dragPointerId = null;
+    }
+
+    calibrationDrag.addEventListener('pointerup', endCalibrationDrag);
+    calibrationDrag.addEventListener('pointercancel', endCalibrationDrag);
+
     async function explore() {
       running = true;
       attempts = 0;
@@ -752,17 +1006,13 @@
       startStar.classList.remove('running', 'discovered');
       startStar.disabled = false;
       discovery.classList.remove('visible');
+      calibrationLayer.classList.remove('visible', 'locked');
+      calibrating = false;
+      startStar.style.opacity = '1';
+      document.getElementById('start-ring').style.opacity = '1';
     }
 
-    startStar.addEventListener('click', () => {
-      if (!running) explore().catch(error => {
-        console.error(error);
-        running = false;
-        startStar.disabled = false;
-        hudStatus.textContent = 'Browser error';
-        statusText.textContent = 'This browser could not access its SHA-256 engine.';
-      });
-    });
+    startStar.addEventListener('click', beginCalibration);
 
     newJourneyButton.addEventListener('click', resetJourney);
     window.addEventListener('resize', createAmbientUniverse);
