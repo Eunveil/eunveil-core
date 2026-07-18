@@ -3,1021 +3,390 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Eunveil — Automatic Proof of Journey</title>
+  <meta name="description" content="Eunveil — Proof of Journey interactive universe prototype" />
+  <title>Eunveil — Proof of Journey</title>
   <style>
-    * { box-sizing: border-box; }
-
-    :root {
-      --gold: #e8c476;
-      --gold-bright: #fff0b0;
-      --blue: #7bbcff;
-      --green: #8ff0b8;
-      --text: #ecf4ff;
-      --muted: #8296b1;
-      --panel: rgba(3, 8, 19, 0.72);
+    :root{
+      --bg:#030508; --panel:rgba(8,11,17,.76); --panel2:rgba(15,20,29,.78);
+      --gold:#d9a64b; --gold2:#ffe0a0; --text:#f5efe5; --muted:#938d84;
+      --line:rgba(216,166,74,.25); --green:#72e5a0; --blue:#79b7ff;
     }
-
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at 50% 45%, #12213d 0%, #07101f 28%, #02050c 62%, #000104 100%);
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
+    button{font:inherit}
+    #universe{position:fixed;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
+    #universe.dragging{cursor:grabbing}
+    .vignette,.grain{position:fixed;inset:0;pointer-events:none}
+    .vignette{background:radial-gradient(circle at center,transparent 34%,rgba(0,0,0,.36) 72%,rgba(0,0,0,.82) 100%)}
+    .grain{opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitchTiles'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E")}
+    .topbar{position:fixed;z-index:20;left:0;right:0;top:0;height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid rgba(255,255,255,.06);background:linear-gradient(to bottom,rgba(3,5,8,.94),rgba(3,5,8,.26));backdrop-filter:blur(15px)}
+    .brand{display:flex;align-items:center;gap:12px;letter-spacing:.24em;font-size:12px;font-weight:800}
+    .brand-e{width:36px;height:36px;border:1px solid var(--gold);border-radius:50%;display:grid;place-items:center;font-family:Georgia,serif;font-size:22px;color:var(--gold2);box-shadow:0 0 24px rgba(216,166,74,.14)}
+    .phase{font-size:11px;color:var(--muted);letter-spacing:.14em;text-align:right}.phase strong{display:block;color:var(--gold2);font-size:12px;margin-top:5px}
+    .hud{position:fixed;z-index:20;top:92px;left:22px;width:min(330px,calc(100vw - 44px));display:grid;gap:12px}
+    .card{border:1px solid rgba(255,255,255,.08);border-radius:18px;background:var(--panel);backdrop-filter:blur(16px);padding:17px}
+    .eyebrow{font-size:9px;letter-spacing:.25em;color:var(--gold2);font-weight:800}
+    .balance{margin-top:7px;font-family:Georgia,serif;font-size:29px;color:var(--gold2);word-break:break-all}
+    .subline{display:flex;justify-content:space-between;gap:15px;margin-top:9px;color:var(--muted);font-size:11px}
+    .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .metric{padding:12px;border:1px solid rgba(255,255,255,.06);border-radius:13px;background:rgba(255,255,255,.025)}
+    .metric span{display:block;color:var(--muted);font-size:9px;letter-spacing:.13em}.metric strong{display:block;margin-top:6px;font-size:15px}
+    .tide-track{height:4px;margin-top:12px;background:rgba(255,255,255,.08);border-radius:5px;overflow:hidden}.tide-fill{height:100%;width:12%;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .5s}
+    .right-panel{position:fixed;z-index:20;top:92px;right:22px;width:min(360px,calc(100vw - 44px));display:grid;gap:12px}
+    .hash{font-family:Consolas,monospace;font-size:11px;line-height:1.7;color:#d9d3ca;word-break:break-all;min-height:38px}
+    .discovery{display:flex;justify-content:space-between;align-items:end;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)}
+    .discovery strong{font-family:Georgia,serif;font-size:24px;color:var(--gold2);text-align:right}
+    .rarity{display:inline-flex;margin-top:10px;padding:6px 9px;border:1px solid var(--line);border-radius:999px;color:var(--gold2);font-size:9px;letter-spacing:.16em}
+    .help{position:fixed;z-index:20;left:50%;bottom:23px;transform:translateX(-50%);padding:11px 16px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(5,8,12,.7);backdrop-filter:blur(12px);color:#aaa39a;font-size:10px;letter-spacing:.1em;white-space:nowrap;transition:opacity .4s}
+    .crosshair{position:fixed;z-index:12;left:50%;top:50%;width:42px;height:42px;transform:translate(-50%,-50%);pointer-events:none;opacity:.32}
+    .crosshair:before,.crosshair:after{content:"";position:absolute;background:var(--gold2)}.crosshair:before{left:20px;top:0;width:1px;height:42px}.crosshair:after{top:20px;left:0;height:1px;width:42px}
+    .crosshair i{position:absolute;inset:9px;border:1px solid var(--gold);border-radius:50%}
+    .journey-flash{position:fixed;z-index:30;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(255,216,139,.16),rgba(0,0,0,.8));transition:opacity .35s}
+    .journey-flash.show{opacity:1}.journey-flash div{text-align:center}.journey-flash small{letter-spacing:.32em;color:var(--gold2)}.journey-flash h2{font-family:Georgia,serif;font-size:clamp(44px,8vw,96px);font-weight:500;margin:14px 0}.journey-flash p{color:#c7bda9}
+    .signature{position:fixed;z-index:50;inset:0;display:none;place-items:center;padding:24px;background:rgba(0,0,0,.82);backdrop-filter:blur(20px)}
+    .signature.open{display:grid}.signature-card{width:min(680px,94vw);text-align:center;padding:48px 30px;border:1px solid var(--gold);border-radius:28px;background:radial-gradient(circle at top,rgba(216,166,74,.14),rgba(8,11,17,.96) 62%);box-shadow:0 0 90px rgba(216,166,74,.18)}
+    .sig-emblem{width:116px;height:116px;margin:auto;border:1px solid var(--gold);border-radius:50%;display:grid;place-items:center;font-family:Georgia,serif;font-size:72px;color:var(--gold2);box-shadow:0 0 55px rgba(216,166,74,.2)}
+    .signature h2{font-family:Georgia,serif;font-size:clamp(42px,7vw,76px);font-weight:500;margin:24px 0 10px}.signature p{color:#b8b0a5;line-height:1.7}.signature .sig-reward{font-size:32px;color:var(--gold2);margin:18px}
+    .primary{border:1px solid var(--gold2);border-radius:999px;padding:14px 23px;background:linear-gradient(135deg,#a87228,#efc36d);color:#090704;font-weight:850;cursor:pointer}
+    .log{max-height:125px;overflow:auto;margin-top:10px;padding-right:4px}.log-row{display:grid;grid-template-columns:42px 1fr auto;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:10px}.log-row span{color:var(--muted)}.log-row b{color:#d8d1c6}.log-row em{font-style:normal;color:var(--gold2)}
+    .mobile-toggle{display:none}
+    @media(max-width:850px){
+      .right-panel{top:auto;bottom:72px;right:12px;width:calc(100vw - 24px)}
+      .right-panel .log-card{display:none}
+      .hud{top:82px;left:12px;width:260px}
+      .card{padding:13px}.balance{font-size:23px}.help{bottom:18px}
+      .topbar{padding:0 14px}.phase{display:none}
     }
-
-    button { font: inherit; }
-
-    #universe {
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-      isolation: isolate;
-    }
-
-    .nebula,
-    .nebula::before,
-    .nebula::after {
-      position: absolute;
-      content: "";
-      border-radius: 50%;
-      pointer-events: none;
-      filter: blur(54px);
-      mix-blend-mode: screen;
-    }
-
-    .nebula {
-      width: 65vw;
-      height: 65vw;
-      left: 48%;
-      top: 51%;
-      transform: translate(-50%, -50%);
-      background:
-        radial-gradient(circle at 38% 42%, rgba(55, 104, 190, 0.15), transparent 40%),
-        radial-gradient(circle at 64% 58%, rgba(132, 70, 170, 0.10), transparent 43%);
-      animation: nebulaDrift 18s ease-in-out infinite alternate;
-    }
-
-    .nebula::before {
-      width: 48%;
-      height: 48%;
-      left: 8%;
-      top: 20%;
-      background: rgba(53, 105, 190, 0.10);
-    }
-
-    .nebula::after {
-      width: 42%;
-      height: 42%;
-      right: 8%;
-      bottom: 13%;
-      background: rgba(167, 99, 186, 0.08);
-    }
-
-    @keyframes nebulaDrift {
-      from { transform: translate(-50%, -50%) scale(0.96) rotate(-2deg); }
-      to { transform: translate(-50%, -50%) scale(1.05) rotate(3deg); }
-    }
-
-    #ambient-stars,
-    #journey-stars,
-    #effects {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-    }
-
-    #connections {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      overflow: visible;
-    }
-
-    .ambient-star {
-      position: absolute;
-      border-radius: 50%;
-      animation: twinkle var(--speed) ease-in-out infinite alternate;
-      animation-delay: var(--delay);
-    }
-
-    @keyframes twinkle {
-      from { opacity: var(--low); transform: scale(0.88); }
-      to { opacity: var(--high); transform: scale(1.12); }
-    }
-
-    .journey-node {
-      position: absolute;
-      z-index: 8;
-      width: var(--size);
-      height: var(--size);
-      margin-left: calc(var(--size) / -2);
-      margin-top: calc(var(--size) / -2);
-      border-radius: 50%;
-      background: radial-gradient(circle, #fff 0 10%, #add9ff 16%, #4879ad 34%, #07121f 70%);
-      box-shadow:
-        0 0 7px rgba(255,255,255,.92),
-        0 0 19px rgba(104,176,255,.8),
-        0 0 42px rgba(60,118,190,.35);
-      opacity: 0;
-      transform: scale(.35);
-      transition: opacity .65s ease, transform .65s cubic-bezier(.2,.8,.2,1);
-    }
-
-    .journey-node.visible {
-      opacity: .95;
-      transform: scale(1);
-    }
-
-    .journey-line {
-      stroke: rgba(112, 175, 242, 0.35);
-      stroke-width: 1.35;
-      stroke-linecap: round;
-      filter: drop-shadow(0 0 5px rgba(100, 170, 240, .58));
-      stroke-dasharray: 500;
-      stroke-dashoffset: 500;
-      animation: drawLine 1.15s ease forwards;
-    }
-
-    @keyframes drawLine { to { stroke-dashoffset: 0; } }
-
-    #start-star {
-      position: absolute;
-      z-index: 20;
-      left: 50%;
-      top: 52%;
-      width: 58px;
-      height: 58px;
-      transform: translate(-50%, -50%);
-      padding: 0;
-      border: 0;
-      border-radius: 50%;
-      cursor: pointer;
-      background: radial-gradient(circle, white 0 8%, #ffe9a8 13%, #c58a32 31%, #1a1005 68%);
-      box-shadow:
-        0 0 12px white,
-        0 0 34px rgba(255, 222, 139, .98),
-        0 0 84px rgba(210, 145, 48, .58);
-      animation: startPulse 2.4s ease-in-out infinite;
-      transition: transform .2s ease, filter .2s ease, opacity .5s ease;
-    }
-
-    #start-star:hover {
-      transform: translate(-50%, -50%) scale(1.15);
-      filter: brightness(1.18);
-    }
-
-    #start-star.running {
-      cursor: default;
-      animation: explorerPulse 1.1s ease-in-out infinite;
-    }
-
-    #start-star.discovered {
-      background: radial-gradient(circle, white 0 8%, #caffdc 13%, #41a36a 31%, #071a0e 68%);
-      box-shadow:
-        0 0 15px white,
-        0 0 42px rgba(126, 255, 174, .98),
-        0 0 110px rgba(63, 200, 118, .62);
-    }
-
-    @keyframes startPulse {
-      0%,100% { box-shadow: 0 0 11px white, 0 0 29px rgba(255,222,139,.88), 0 0 68px rgba(210,145,48,.45); }
-      50% { box-shadow: 0 0 16px white, 0 0 44px rgba(255,222,139,1), 0 0 102px rgba(210,145,48,.66); }
-    }
-
-    @keyframes explorerPulse {
-      0%,100% { transform: translate(-50%, -50%) scale(.92); }
-      50% { transform: translate(-50%, -50%) scale(1.08); }
-    }
-
-    #start-ring {
-      position: absolute;
-      z-index: 18;
-      left: 50%;
-      top: 52%;
-      width: 116px;
-      height: 116px;
-      border: 1px solid rgba(231, 193, 109, .25);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-      animation: ringBreath 3s ease-in-out infinite;
-    }
-
-    #start-ring::before,
-    #start-ring::after {
-      content: "";
-      position: absolute;
-      inset: 14px;
-      border: 1px solid rgba(123, 188, 255, .16);
-      border-radius: inherit;
-    }
-
-    #start-ring::after { inset: 30px; }
-
-    @keyframes ringBreath {
-      0%,100% { opacity: .35; transform: translate(-50%, -50%) scale(.92); }
-      50% { opacity: .85; transform: translate(-50%, -50%) scale(1.08); }
-    }
-
-    #hud {
-      position: fixed;
-      z-index: 60;
-      left: 26px;
-      top: 24px;
-      width: 260px;
-      padding: 18px 19px;
-      border-left: 2px solid rgba(231, 193, 109, .72);
-      background: linear-gradient(90deg, rgba(3,8,18,.82), rgba(3,8,18,.12));
-      backdrop-filter: blur(8px);
-    }
-
-    .brand {
-      color: var(--gold);
-      font-size: 1.42rem;
-      font-weight: 750;
-      letter-spacing: .22em;
-    }
-
-    .protocol {
-      margin-top: 4px;
-      color: #9aacbf;
-      font-size: .7rem;
-      letter-spacing: .15em;
-      text-transform: uppercase;
-    }
-
-    .divider {
-      width: 60px;
-      height: 1px;
-      margin: 15px 0;
-      background: rgba(231, 193, 109, .52);
-    }
-
-    .hud-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 15px;
-      margin: 8px 0;
-      font-size: .8rem;
-    }
-
-    .label { color: var(--muted); }
-    .value { color: #dce9fa; text-align: right; font-variant-numeric: tabular-nums; }
-    .value.gold { color: var(--gold-bright); }
-    .value.green { color: var(--green); }
-
-    #hash-panel {
-      position: fixed;
-      z-index: 55;
-      right: 26px;
-      top: 24px;
-      width: min(390px, calc(100vw - 52px));
-      padding: 16px 18px;
-      border: 1px solid rgba(116, 169, 230, .18);
-      border-radius: 12px;
-      background: rgba(3, 8, 18, .68);
-      backdrop-filter: blur(8px);
-      box-shadow: 0 0 38px rgba(45, 92, 155, .11);
-    }
-
-    .panel-title {
-      color: #9eb4ce;
-      font-size: .68rem;
-      letter-spacing: .15em;
-      text-transform: uppercase;
-    }
-
-    #live-hash {
-      min-height: 42px;
-      margin-top: 9px;
-      color: #dceaff;
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-      font-size: .76rem;
-      line-height: 1.45;
-      overflow-wrap: anywhere;
-      opacity: .92;
-    }
-
-    .target-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: 12px;
-      padding-top: 11px;
-      border-top: 1px solid rgba(120, 162, 214, .14);
-      color: var(--muted);
-      font-size: .76rem;
-    }
-
-    #target-prefix {
-      color: var(--gold-bright);
-      font-family: monospace;
-      font-size: .95rem;
-      letter-spacing: .12em;
-    }
-
-    #status {
-      position: fixed;
-      z-index: 60;
-      left: 50%;
-      bottom: 31px;
-      width: min(650px, 90vw);
-      transform: translateX(-50%);
-      text-align: center;
-      color: #9cb0c9;
-      font-size: .9rem;
-      letter-spacing: .025em;
-      text-shadow: 0 0 18px rgba(0,0,0,.85);
-    }
-
-    #status strong { color: var(--gold-bright); font-weight: 600; }
-
-    #progress-wrap {
-      position: fixed;
-      z-index: 55;
-      left: 50%;
-      bottom: 67px;
-      width: min(520px, 76vw);
-      height: 3px;
-      transform: translateX(-50%);
-      overflow: hidden;
-      border-radius: 99px;
-      background: rgba(126, 159, 202, .13);
-      opacity: 0;
-      transition: opacity .4s ease;
-    }
-
-    #progress-wrap.visible { opacity: 1; }
-
-    #progress {
-      width: 0%;
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, #6caeff, #e8c476);
-      box-shadow: 0 0 12px rgba(123,188,255,.75);
-      transition: width .25s linear;
-    }
-
-    #discovery {
-      position: fixed;
-      z-index: 100;
-      inset: 0;
-      display: none;
-      place-items: center;
-      background: rgba(0, 2, 8, .62);
-      backdrop-filter: blur(5px);
-    }
-
-    #discovery.visible { display: grid; }
-
-    .discovery-card {
-      width: min(470px, 90vw);
-      padding: 38px 30px 32px;
-      border: 1px solid rgba(231,193,109,.48);
-      border-radius: 20px;
-      background: linear-gradient(150deg, rgba(7,15,31,.97), rgba(2,6,14,.97));
-      text-align: center;
-      box-shadow: 0 0 80px rgba(71,125,196,.25), inset 0 0 35px rgba(255,255,255,.02);
-      animation: cardArrive .65s cubic-bezier(.2,.8,.2,1);
-    }
-
-    @keyframes cardArrive {
-      from { opacity: 0; transform: translateY(18px) scale(.96); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    .discovery-symbol {
-      width: 82px;
-      height: 82px;
-      margin: 0 auto 20px;
-      border-radius: 50%;
-      background: radial-gradient(circle, white 0 7%, #caffdc 12%, #48ad73 30%, #071a0e 67%);
-      box-shadow: 0 0 15px white, 0 0 42px rgba(126,255,174,.95), 0 0 95px rgba(63,200,118,.55);
-    }
-
-    .discovery-card h1 {
-      margin: 0;
-      color: var(--gold);
-      font-size: 2rem;
-      letter-spacing: .03em;
-    }
-
-    .discovery-card p {
-      margin: 12px 0;
-      color: #aebdd1;
-      line-height: 1.55;
-    }
-
-    .reward {
-      margin: 24px 0 6px;
-      color: var(--green);
-      font-size: 2.05rem;
-      font-weight: 750;
-    }
-
-    #winning-hash {
-      margin: 13px auto 23px;
-      max-width: 100%;
-      color: #90a8c4;
-      font-family: monospace;
-      font-size: .7rem;
-      overflow-wrap: anywhere;
-    }
-
-    #new-journey {
-      padding: 12px 21px;
-      border: 1px solid var(--gold);
-      border-radius: 9px;
-      color: #171105;
-      background: var(--gold);
-      font-weight: 750;
-      cursor: pointer;
-    }
-
-    #new-journey:hover { filter: brightness(1.12); }
-
-    .burst {
-      position: absolute;
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: white;
-      box-shadow: 0 0 12px rgba(255,235,170,.95);
-      animation: burst 1.6s ease-out forwards;
-    }
-
-    @keyframes burst {
-      from { opacity: 1; transform: translate(0,0) scale(1); }
-      to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.2); }
-    }
-
-
-
-    /* v0.11 — explorer calibration */
-    #calibration-layer {
-      position: absolute;
-      z-index: 45;
-      inset: 0;
-      display: none;
-      pointer-events: auto;
-      background: radial-gradient(circle at 50% 50%, rgba(8,20,39,.16), rgba(0,2,8,.48));
-      backdrop-filter: blur(1.5px);
-    }
-
-    #calibration-layer.visible { display: block; }
-
-    #calibration-target,
-    #calibration-drag {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 220px;
-      height: 180px;
-      transform: translate(-50%, -50%);
-    }
-
-    #calibration-target {
-      opacity: .42;
-      pointer-events: none;
-      filter: drop-shadow(0 0 16px rgba(123,188,255,.3));
-    }
-
-    #calibration-drag {
-      cursor: grab;
-      touch-action: none;
-      transition: filter .18s ease;
-    }
-
-    #calibration-drag.dragging { cursor: grabbing; filter: brightness(1.18); }
-
-    .cal-star {
-      position: absolute;
-      width: 27px;
-      height: 27px;
-      margin: -13.5px 0 0 -13.5px;
-      border-radius: 50%;
-    }
-
-    #calibration-target .cal-star {
-      background: radial-gradient(circle, white 0 8%, rgba(150,207,255,.9) 14%, rgba(69,115,167,.58) 33%, rgba(4,14,27,.08) 70%);
-      box-shadow: 0 0 8px rgba(255,255,255,.5), 0 0 26px rgba(112,183,255,.44), 0 0 55px rgba(61,124,196,.2);
-    }
-
-    #calibration-drag .cal-star {
-      background: radial-gradient(circle, white 0 8%, #ffe8a4 14%, #c68d35 33%, #1a1005 70%);
-      box-shadow: 0 0 10px white, 0 0 29px rgba(255,221,132,.9), 0 0 66px rgba(210,145,48,.44);
-    }
-
-    .cal-star.one { left: 50%; top: 12%; }
-    .cal-star.two { left: 18%; top: 78%; }
-    .cal-star.three { left: 82%; top: 70%; }
-
-    .cal-line {
-      position: absolute;
-      height: 1px;
-      transform-origin: 0 50%;
-      pointer-events: none;
-    }
-
-    #calibration-target .cal-line { background: rgba(122,190,255,.3); box-shadow: 0 0 7px rgba(100,170,240,.32); }
-    #calibration-drag .cal-line { background: rgba(232,196,118,.45); box-shadow: 0 0 7px rgba(232,196,118,.36); }
-
-    .cal-line.a { left: 50%; top: 12%; width: 137px; transform: rotate(116deg); }
-    .cal-line.b { left: 18%; top: 78%; width: 143px; transform: rotate(-7deg); }
-    .cal-line.c { left: 82%; top: 70%; width: 132px; transform: rotate(-118deg); }
-
-    #calibration-readout {
-      position: fixed;
-      z-index: 70;
-      left: 50%;
-      bottom: 88px;
-      transform: translateX(-50%);
-      width: min(420px, 82vw);
-      text-align: center;
-      pointer-events: none;
-    }
-
-    #calibration-title {
-      color: var(--gold-bright);
-      font-size: .78rem;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-    }
-
-    #signal-strength {
-      margin-top: 8px;
-      color: #dceaff;
-      font-variant-numeric: tabular-nums;
-      font-size: 1rem;
-    }
-
-    #signal-meter {
-      height: 3px;
-      margin-top: 10px;
-      overflow: hidden;
-      border-radius: 99px;
-      background: rgba(126,159,202,.15);
-    }
-
-    #signal-meter-fill {
-      width: 0%;
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, #6caeff, #e8c476, #8ff0b8);
-      box-shadow: 0 0 13px rgba(123,188,255,.7);
-      transition: width .1s linear;
-    }
-
-    #calibration-layer.locked #calibration-drag {
-      filter: drop-shadow(0 0 25px rgba(126,255,174,.75));
-      pointer-events: none;
-    }
-
-    #calibration-layer.locked #calibration-drag .cal-star {
-      background: radial-gradient(circle, white 0 8%, #caffdc 14%, #49ad73 33%, #071a0e 70%);
-      box-shadow: 0 0 12px white, 0 0 34px rgba(126,255,174,.92), 0 0 78px rgba(63,200,118,.52);
-    }
-
-    @media (max-width: 760px) {
-      #hud { left: 12px; top: 12px; width: 220px; padding: 13px 15px; }
-      #hash-panel { left: 12px; right: 12px; top: auto; bottom: 98px; width: auto; }
-      #status { bottom: 24px; font-size: .8rem; }
-      #progress-wrap { bottom: 58px; }
-      #start-star, #start-ring { top: 44%; }
+    @media(max-width:560px){
+      .hud{width:calc(100vw - 24px)}.metric-grid{grid-template-columns:repeat(4,1fr)}.metric{padding:8px}.metric strong{font-size:12px}
+      .right-panel{bottom:62px}.hash-card{padding:12px}.discovery strong{font-size:19px}.help{font-size:8px;padding:9px 12px}
     }
   </style>
 </head>
 <body>
-  <main id="universe">
-    <div class="nebula"></div>
-    <div id="ambient-stars"></div>
-    <svg id="connections" aria-hidden="true"></svg>
-    <div id="journey-stars"></div>
-    <div id="effects"></div>
+  <canvas id="universe"></canvas>
+  <div class="vignette"></div><div class="grain"></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-e">E</span><span>EUNVEIL</span></div>
+    <div class="phase">PROOF OF JOURNEY PROTOTYPE<strong>EXPEDITION I · PHASE I</strong></div>
+  </header>
 
-    <div id="start-ring"></div>
-    <button id="start-star" aria-label="Begin automatic journey"></button>
-
-    <section id="calibration-layer" aria-live="polite">
-      <div id="calibration-target" aria-hidden="true">
-        <span class="cal-line a"></span><span class="cal-line b"></span><span class="cal-line c"></span>
-        <span class="cal-star one"></span><span class="cal-star two"></span><span class="cal-star three"></span>
-      </div>
-      <div id="calibration-drag" role="button" aria-label="Drag this constellation onto the distant signal">
-        <span class="cal-line a"></span><span class="cal-line b"></span><span class="cal-line c"></span>
-        <span class="cal-star one"></span><span class="cal-star two"></span><span class="cal-star three"></span>
-      </div>
-      <div id="calibration-readout">
-        <div id="calibration-title">Align explorer with distant signal</div>
-        <div id="signal-strength">Signal strength 0%</div>
-        <div id="signal-meter"><div id="signal-meter-fill"></div></div>
-      </div>
-    </section>
-
-  </main>
-
-  <aside id="hud">
-    <div class="brand">EUNVEIL</div>
-    <div class="protocol">Proof of Journey</div>
-    <div class="divider"></div>
-
-    <div class="hud-row"><span class="label">Expedition</span><span class="value">01</span></div>
-    <div class="hud-row"><span class="label">Phase</span><span class="value">01</span></div>
-    <div class="hud-row"><span class="label">Journey</span><span class="value" id="journey-number">000001</span></div>
-    <div class="hud-row"><span class="label">Status</span><span class="value gold" id="hud-status">Awaiting explorer</span></div>
-    <div class="hud-row"><span class="label">Attempts</span><span class="value" id="attempts">0</span></div>
-    <div class="hud-row"><span class="label">Explore rate</span><span class="value" id="rate">0 / sec</span></div>
-    <div class="hud-row"><span class="label">Reward</span><span class="value green">20 Test EUN</span></div>
-  </aside>
-
-  <section id="hash-panel">
-    <div class="panel-title">Current SHA-256 signal</div>
-    <div id="live-hash">No journey signal yet.</div>
-    <div class="target-row">
-      <span>Discovery signature</span>
-      <span id="target-prefix">----</span>
+  <section class="hud">
+    <div class="card">
+      <div class="eyebrow">TOTAL DISCOVERED</div>
+      <div class="balance" id="balance">0.000000000000 EUN</div>
+      <div class="subline"><span>Wallet: Prototype Explorer</span><span id="sessionTime">00:00</span></div>
+    </div>
+    <div class="metric-grid">
+      <div class="metric"><span>JOURNEYS</span><strong id="journeys">0</strong></div>
+      <div class="metric"><span>SIGNATURES</span><strong id="signatures">0</strong></div>
+      <div class="metric"><span>BEST HASH</span><strong id="bestScore">—</strong></div>
+      <div class="metric"><span>CURRENT TIDE</span><strong id="tideLabel">CALM</strong></div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">SIGNATURE CALIBRATION</div>
+      <div class="subline"><span>Signal density rises as you explore</span><span id="targetOdds">≈ 1 / 160</span></div>
+      <div class="tide-track"><div class="tide-fill" id="tideFill"></div></div>
     </div>
   </section>
 
-  <div id="progress-wrap"><div id="progress"></div></div>
-  <div id="status">Click the <strong>golden star</strong> to begin exploring automatically.</div>
-
-  <section id="discovery" aria-live="polite">
-    <div class="discovery-card">
-      <div class="discovery-symbol"></div>
-      <h1>Discovery Unveiled</h1>
-      <p>Your explorer found the valid SHA-256 journey and revealed a new region of the universe.</p>
-      <div class="reward">+20 Test EUN</div>
-      <div id="winning-hash"></div>
-      <button id="new-journey">Begin Next Journey</button>
+  <section class="right-panel">
+    <div class="card hash-card">
+      <div class="eyebrow">LATEST SHA-256 DISCOVERY</div>
+      <div class="hash" id="hash">Select a star to begin a Journey.</div>
+      <span class="rarity" id="rarity">AWAITING SIGNAL</span>
+      <div class="discovery">
+        <div><div class="eyebrow">DEPOSIT</div><small id="depositType" style="color:var(--muted)">None</small></div>
+        <strong id="reward">0.000000000000 EUN</strong>
+      </div>
+    </div>
+    <div class="card log-card">
+      <div class="eyebrow">JOURNEY LOG</div>
+      <div class="log" id="log"><div class="log-row"><span>000</span><b>Universe initialized</b><em>READY</em></div></div>
     </div>
   </section>
 
-  <script>
-    const ACCEPTED_RATE = 1000;
-    const EXPECTED_ATTEMPTS = 65536; // four hexadecimal characters
-    const BATCH_SIZE = 180;
-    const NODE_EVERY = 7000;
+  <div class="crosshair"><i></i></div>
+  <div class="help" id="help">DRAG TO ROTATE · SCROLL TO MOVE · CLICK A GLOWING STAR</div>
 
-    const ambientLayer = document.getElementById('ambient-stars');
-    const journeyLayer = document.getElementById('journey-stars');
-    const connectionLayer = document.getElementById('connections');
-    const effectsLayer = document.getElementById('effects');
-    const startStar = document.getElementById('start-star');
-    const statusText = document.getElementById('status');
-    const hudStatus = document.getElementById('hud-status');
-    const attemptsEl = document.getElementById('attempts');
-    const rateEl = document.getElementById('rate');
-    const liveHashEl = document.getElementById('live-hash');
-    const targetEl = document.getElementById('target-prefix');
-    const progressWrap = document.getElementById('progress-wrap');
-    const progressEl = document.getElementById('progress');
-    const discovery = document.getElementById('discovery');
-    const winningHashEl = document.getElementById('winning-hash');
-    const journeyNumberEl = document.getElementById('journey-number');
-    const newJourneyButton = document.getElementById('new-journey');
-    const calibrationLayer = document.getElementById('calibration-layer');
-    const calibrationDrag = document.getElementById('calibration-drag');
-    const calibrationTarget = document.getElementById('calibration-target');
-    const signalStrengthEl = document.getElementById('signal-strength');
-    const signalMeterFill = document.getElementById('signal-meter-fill');
+  <div class="journey-flash" id="flash">
+    <div><small>JOURNEY VERIFIED</small><h2 id="flashTitle">Dust Discovered</h2><p id="flashReward">+0.00000001 EUN</p></div>
+  </div>
 
-    let running = false;
-    let attempts = 0;
-    let journeyNumber = 1;
-    let targetPrefix = '';
-    let roundSeed = '';
-    let startedAt = 0;
-    let lastNodeAttempt = 0;
-    let previousPoint = null;
-    let calibrating = false;
-    let dragPointerId = null;
-    let dragOffsetX = 0;
-    let dragOffsetY = 0;
+  <div class="signature" id="signatureModal">
+    <div class="signature-card">
+      <div class="sig-emblem">E</div>
+      <div class="eyebrow" style="margin-top:24px">THE TARGET HAS BEEN FOUND</div>
+      <h2>Signature Discovered</h2>
+      <p>Your Journey produced a SHA-256 value beneath the current Signature target. The universe has verified the discovery.</p>
+      <div class="sig-reward" id="signatureReward">+10.00000000 EUN</div>
+      <button class="primary" id="continueBtn">Continue Exploring</button>
+    </div>
+  </div>
 
-    function randomBetween(min, max) {
-      return Math.random() * (max - min) + min;
+<script>
+(() => {
+  const canvas = document.getElementById('universe');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const DPR = Math.min(devicePixelRatio || 1, 2);
+  let width=0, height=0, stars=[], particles=[];
+  let yaw=0, pitch=0, zoom=760, targetYaw=0, targetPitch=0, targetZoom=760;
+  let dragging=false, lastX=0, lastY=0, moved=false, locked=false;
+  let journeyCount=0, signatures=0, balance=0, bestQuality=0;
+  let selected=null, zoomPhase=0, sessionStart=Date.now();
+  const palette=['#ffd98b','#8fc5ff','#ff8f72','#b8ff91','#f4f0e8'];
+
+  const $ = id => document.getElementById(id);
+  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+  const fmt=n=>n.toFixed(12);
+  const pad=n=>String(n).padStart(3,'0');
+
+  function resize(){
+    width=innerWidth; height=innerHeight;
+    canvas.width=width*DPR; canvas.height=height*DPR;
+    canvas.style.width=width+'px'; canvas.style.height=height+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    if(!stars.length) buildUniverse();
+  }
+
+  function buildUniverse(){
+    stars=[];
+    const count = width < 600 ? 190 : 330;
+    for(let i=0;i<count;i++){
+      const r=400+Math.random()*1800;
+      const theta=Math.random()*Math.PI*2;
+      const phi=Math.acos(2*Math.random()-1);
+      stars.push({
+        id:i+1,
+        x:r*Math.sin(phi)*Math.cos(theta),
+        y:r*Math.cos(phi)*.72,
+        z:r*Math.sin(phi)*Math.sin(theta),
+        size:.6+Math.random()*2.2,
+        glow:Math.random(),
+        color:palette[Math.floor(Math.random()*palette.length)],
+        pulse:Math.random()*Math.PI*2,
+        clickable:Math.random()>.74,
+        sx:0,sy:0,depth:0,visible:false
+      });
     }
+    // Always place several attractive targets near the opening view.
+    for(let i=0;i<14;i++){
+      const angle=(i/14)*Math.PI*2;
+      stars.push({
+        id:stars.length+1,
+        x:Math.sin(angle)*520+(Math.random()-.5)*180,
+        y:(Math.random()-.5)*480,
+        z:900+Math.cos(angle)*380,
+        size:1.4+Math.random()*2.7,
+        glow:.8+Math.random()*.2,
+        color:palette[i%palette.length],
+        pulse:Math.random()*6.28, clickable:true,sx:0,sy:0,depth:0,visible:false
+      });
+    }
+  }
 
-    function createAmbientUniverse() {
-      ambientLayer.innerHTML = '';
-      const starCount = Math.min(320, Math.floor(window.innerWidth / 4.2));
-      const tints = [
-        [235,244,255], [177,211,255], [255,226,170], [210,225,255]
-      ];
+  function rotatePoint(s){
+    const cy=Math.cos(yaw), sy=Math.sin(yaw), cp=Math.cos(pitch), sp=Math.sin(pitch);
+    let x=s.x*cy-s.z*sy, z=s.x*sy+s.z*cy;
+    let y=s.y*cp-z*sp; z=s.y*sp+z*cp;
+    z += zoom;
+    return {x,y,z};
+  }
 
-      for (let i = 0; i < starCount; i++) {
-        const star = document.createElement('div');
-        star.className = 'ambient-star';
-        const depth = Math.random();
-        const size = depth < .6 ? randomBetween(.8, 1.9) : depth < .92 ? randomBetween(2, 3.4) : randomBetween(3.7, 5.6);
-        const opacity = depth < .6 ? randomBetween(.16,.42) : depth < .92 ? randomBetween(.38,.68) : randomBetween(.58,.88);
-        const tint = tints[Math.floor(Math.random() * tints.length)];
+  function drawNebula(){
+    const g=ctx.createRadialGradient(width*.7,height*.35,30,width*.7,height*.35,width*.58);
+    g.addColorStop(0,'rgba(90,80,135,.10)'); g.addColorStop(.35,'rgba(28,65,100,.055)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,width,height);
+    const g2=ctx.createRadialGradient(width*.2,height*.75,20,width*.2,height*.75,width*.42);
+    g2.addColorStop(0,'rgba(160,87,42,.07)'); g2.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g2; ctx.fillRect(0,0,width,height);
+  }
 
-        star.style.left = `${Math.random() * 100}%`;
-        star.style.top = `${Math.random() * 100}%`;
-        star.style.width = `${size}px`;
-        star.style.height = `${size}px`;
-        star.style.background = `rgb(${tint.join(',')})`;
-        star.style.boxShadow = `0 0 ${size * 2.8}px rgba(${tint.join(',')},${opacity})`;
-        star.style.setProperty('--low', Math.max(.1, opacity - .2));
-        star.style.setProperty('--high', Math.min(1, opacity + .14));
-        star.style.setProperty('--speed', `${randomBetween(2.7, 7.5)}s`);
-        star.style.setProperty('--delay', `${randomBetween(-7, 0)}s`);
-        ambientLayer.appendChild(star);
+  function draw(){
+    yaw += (targetYaw-yaw)*.075; pitch += (targetPitch-pitch)*.075; zoom += (targetZoom-zoom)*.07;
+    ctx.fillStyle='#030508'; ctx.fillRect(0,0,width,height); drawNebula();
+    const projected=[];
+    for(const s of stars){
+      s.pulse+=.016;
+      const p=rotatePoint(s);
+      if(p.z<80){s.visible=false;continue}
+      const scale=620/p.z;
+      const sx=width/2+p.x*scale, sy=height/2+p.y*scale;
+      if(sx<-60||sx>width+60||sy<-60||sy>height+60){s.visible=false;continue}
+      s.sx=sx;s.sy=sy;s.depth=p.z;s.visible=true;
+      projected.push(s);
+    }
+    projected.sort((a,b)=>b.depth-a.depth);
+    for(const s of projected){
+      const scale=620/s.depth;
+      const pulse=1+Math.sin(s.pulse)*.18;
+      const r=clamp(s.size*scale*2.2,.45,7)*pulse;
+      if(s.clickable){
+        const gr=ctx.createRadialGradient(s.sx,s.sy,0,s.sx,s.sy,r*7);
+        gr.addColorStop(0,s.color); gr.addColorStop(.12,s.color); gr.addColorStop(.34,'rgba(216,166,74,.22)'); gr.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=gr;ctx.beginPath();ctx.arc(s.sx,s.sy,r*7,0,Math.PI*2);ctx.fill();
+      }
+      ctx.fillStyle=s.color;ctx.globalAlpha=clamp(1-(s.depth-800)/3000,.24,1);
+      ctx.beginPath();ctx.arc(s.sx,s.sy,r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      if(s.clickable && r>1.3){
+        ctx.strokeStyle='rgba(255,220,150,.18)';ctx.lineWidth=.6;ctx.beginPath();ctx.arc(s.sx,s.sy,r*3.1,0,Math.PI*2);ctx.stroke();
       }
     }
+    updateParticles();
+    requestAnimationFrame(draw);
+  }
 
-    function randomHex(length) {
-      const bytes = new Uint8Array(Math.ceil(length / 2));
-      crypto.getRandomValues(bytes);
-      return Array.from(bytes, b => b.toString(16).padStart(2,'0')).join('').slice(0, length);
+  function updateParticles(){
+    for(let i=particles.length-1;i>=0;i--){
+      const p=particles[i]; p.life-=.025; p.x+=p.vx; p.y+=p.vy; p.vx*=.985;p.vy*=.985;
+      ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      if(p.life<=0)particles.splice(i,1);
+    } ctx.globalAlpha=1;
+  }
+
+  function burst(x,y,color){
+    for(let i=0;i<55;i++){const a=Math.random()*6.28,sp=.5+Math.random()*5;particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:.5+Math.random()*2,life:.7+Math.random()*.5,color});}
+  }
+
+  function hitTest(x,y){
+    let hit=null, best=Infinity;
+    for(const s of stars){
+      if(!s.visible||!s.clickable)continue;
+      const d=Math.hypot(x-s.sx,y-s.sy);
+      const radius=clamp(s.size*(620/s.depth)*9,12,34);
+      if(d<radius && d<best){hit=s;best=d}
     }
+    return hit;
+  }
 
-    async function sha256(text) {
-      const bytes = new TextEncoder().encode(text);
-      const digest = await crypto.subtle.digest('SHA-256', bytes);
-      return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2,'0')).join('');
+  async function sha256(text){
+    const data=new TextEncoder().encode(text);
+    const digest=await crypto.subtle.digest('SHA-256',data);
+    return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
+  function calibrationOdds(){
+    // A calm beginning, then a gradually rising "tide" to make the prototype target arrive
+    // in a few minutes for most players without changing rewards in real time.
+    if(journeyCount<70)return 160;
+    if(journeyCount<120)return 110;
+    if(journeyCount<170)return 70;
+    if(journeyCount<220)return 38;
+    return 18;
+  }
+
+  function rewardFromHash(hash, isSignature){
+    if(isSignature) return {value:10, type:'SIGNATURE', label:'Signature Discovered'};
+    const leading = hash.match(/^0*/)[0].length;
+    const quality = 1 - parseInt(hash.slice(0,13),16)/0xFFFFFFFFFFFFF;
+    let value, type;
+    if(leading>=3 || quality>.9995){value=.02+quality*.03;type='EXCEPTIONAL DEPOSIT'}
+    else if(leading>=2 || quality>.995){value=.002+quality*.008;type='RICH DEPOSIT'}
+    else if(leading>=1 || quality>.97){value=.00008+quality*.00042;type='DEPOSIT'}
+    else if(quality>.72){value=.0000008+quality*.0000092;type='FLAKES'}
+    else {value=.000000001+quality*.00000022;type='DUST'}
+    return {value,type,label:type.replace(/\b\w/g,c=>c.toUpperCase())};
+  }
+
+  async function beginJourney(star){
+    if(locked)return; locked=true; selected=star; burst(star.sx,star.sy,star.color);
+    $('help').style.opacity='.15';
+    // Rotate selected star into the center and move forward through it.
+    const desiredYaw=Math.atan2(star.x,star.z);
+    const flat=Math.sqrt(star.x*star.x+star.z*star.z);
+    const desiredPitch=-Math.atan2(star.y,flat);
+    targetYaw+=desiredYaw*.78; targetPitch=clamp(targetPitch+desiredPitch*.78,-1.15,1.15);
+    targetZoom=220;
+    await new Promise(r=>setTimeout(r,850));
+
+    journeyCount++;
+    const nonce=crypto.getRandomValues(new Uint32Array(4)).join('-');
+    const input=`EUNVEIL|EXP1-P1|JOURNEY:${journeyCount}|STAR:${star.id}|${nonce}|${Date.now()}`;
+    const hash=await sha256(input);
+    const sample=parseInt(hash.slice(0,8),16);
+    const odds=calibrationOdds();
+    const target=Math.floor(0x100000000/odds);
+    const isSignature=sample<target;
+    const quality=1-sample/0xFFFFFFFF;
+    bestQuality=Math.max(bestQuality,quality);
+    const result=rewardFromHash(hash,isSignature);
+    balance+=result.value;
+    if(isSignature)signatures++;
+
+    $('hash').textContent=hash.toUpperCase();
+    $('reward').textContent='+'+fmt(result.value)+' EUN';
+    $('depositType').textContent=result.type;
+    $('rarity').textContent=`TOP ${(Math.max(.0001,(1-quality)*100)).toFixed(4)}% HASH`;
+    $('balance').textContent=fmt(balance)+' EUN';
+    $('journeys').textContent=journeyCount;
+    $('signatures').textContent=signatures;
+    $('bestScore').textContent=`TOP ${Math.max(.001,(1-bestQuality)*100).toFixed(3)}%`;
+    updateCalibration();
+    addLog(result.type,result.value);
+
+    $('flashTitle').textContent=result.label;
+    $('flashReward').textContent='+'+fmt(result.value)+' EUN';
+    $('flash').classList.add('show');
+    setTimeout(()=>$('flash').classList.remove('show'),760);
+
+    // Pass through the star and regenerate the next region of the universe.
+    targetZoom=-360;
+    await new Promise(r=>setTimeout(r,650));
+    reseedRegion();
+    targetZoom=760;
+    selected=null; locked=false; $('help').style.opacity='1';
+    if(isSignature){
+      $('signatureReward').textContent='+'+result.value.toFixed(8)+' EUN';
+      $('signatureModal').classList.add('open');
     }
+  }
 
-    function makeJourneyNode() {
-      const marginX = Math.max(80, window.innerWidth * .12);
-      const marginY = Math.max(95, window.innerHeight * .16);
-      let x;
-      let y;
-
-      if (!previousPoint) {
-        x = window.innerWidth * .5;
-        y = window.innerHeight * .52;
-      } else {
-        const angle = Math.random() * Math.PI * 2;
-        const distance = randomBetween(85, 150);
-        x = previousPoint.x + Math.cos(angle) * distance;
-        y = previousPoint.y + Math.sin(angle) * distance;
-        x = Math.max(marginX, Math.min(window.innerWidth - marginX, x));
-        y = Math.max(marginY, Math.min(window.innerHeight - marginY, y));
-      }
-
-      const size = randomBetween(10, 21);
-      const node = document.createElement('div');
-      node.className = 'journey-node';
-      node.style.left = `${x}px`;
-      node.style.top = `${y}px`;
-      node.style.setProperty('--size', `${size}px`);
-      journeyLayer.appendChild(node);
-
-      if (previousPoint) {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', previousPoint.x);
-        line.setAttribute('y1', previousPoint.y);
-        line.setAttribute('x2', x);
-        line.setAttribute('y2', y);
-        line.setAttribute('class', 'journey-line');
-        connectionLayer.appendChild(line);
-      }
-
-      requestAnimationFrame(() => node.classList.add('visible'));
-      previousPoint = { x, y };
+  function reseedRegion(){
+    // Move every star into a new region, creating the feeling that each star opens deeper space.
+    for(const s of stars){
+      const r=420+Math.random()*1900, theta=Math.random()*6.28, phi=Math.acos(2*Math.random()-1);
+      s.x=r*Math.sin(phi)*Math.cos(theta);s.y=r*Math.cos(phi)*.72;s.z=r*Math.sin(phi)*Math.sin(theta);
+      s.clickable=Math.random()>.72;s.color=palette[Math.floor(Math.random()*palette.length)];
     }
+    for(let i=0;i<12;i++){const s=stars[i];s.x=(Math.random()-.5)*950;s.y=(Math.random()-.5)*650;s.z=650+Math.random()*800;s.clickable=true;s.size=1.5+Math.random()*2.6}
+  }
 
-    function updateProgress() {
-      const statisticalProgress = Math.min(96, (attempts / EXPECTED_ATTEMPTS) * 100);
-      progressEl.style.width = `${statisticalProgress}%`;
-    }
+  function updateCalibration(){
+    const odds=calibrationOdds();
+    $('targetOdds').textContent=`≈ 1 / ${odds}`;
+    const pct=clamp(12+(journeyCount/240)*88,12,100);
+    $('tideFill').style.width=pct+'%';
+    const label=journeyCount<70?'CALM':journeyCount<120?'RISING':journeyCount<170?'ACTIVE':journeyCount<220?'HIGH':'SURGE';
+    $('tideLabel').textContent=label;
+  }
 
-    function updateRate() {
-      const elapsed = Math.max(.001, (performance.now() - startedAt) / 1000);
-      rateEl.textContent = `${Math.round(attempts / elapsed).toLocaleString()} / sec`;
-    }
+  function addLog(type,value){
+    const row=document.createElement('div');row.className='log-row';
+    row.innerHTML=`<span>${pad(journeyCount)}</span><b>${type}</b><em>+${value<.000001?value.toExponential(2):value.toFixed(8)}</em>`;
+    $('log').prepend(row);
+    while($('log').children.length>12)$('log').lastChild.remove();
+  }
 
-    function burstAtCenter() {
-      const cx = window.innerWidth / 2;
-      const cy = window.innerHeight * .52;
-      for (let i = 0; i < 34; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'burst';
-        particle.style.left = `${cx}px`;
-        particle.style.top = `${cy}px`;
-        const angle = Math.random() * Math.PI * 2;
-        const distance = randomBetween(70, 220);
-        particle.style.setProperty('--dx', `${Math.cos(angle) * distance}px`);
-        particle.style.setProperty('--dy', `${Math.sin(angle) * distance}px`);
-        effectsLayer.appendChild(particle);
-        setTimeout(() => particle.remove(), 1700);
-      }
-    }
+  canvas.addEventListener('pointerdown',e=>{dragging=true;moved=false;lastX=e.clientX;lastY=e.clientY;canvas.classList.add('dragging');canvas.setPointerCapture(e.pointerId)});
+  canvas.addEventListener('pointermove',e=>{
+    if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;
+    targetYaw-=dx*.0042;targetPitch=clamp(targetPitch-dy*.0038,-1.25,1.25);lastX=e.clientX;lastY=e.clientY;
+  });
+  canvas.addEventListener('pointerup',e=>{
+    dragging=false;canvas.classList.remove('dragging');
+    if(!moved){const hit=hitTest(e.clientX,e.clientY);if(hit)beginJourney(hit)}
+  });
+  canvas.addEventListener('wheel',e=>{e.preventDefault();targetZoom=clamp(targetZoom+e.deltaY*.55,260,1450)},{passive:false});
+  canvas.addEventListener('dblclick',()=>{targetYaw=0;targetPitch=0;targetZoom=760});
+  $('continueBtn').addEventListener('click',()=>$('signatureModal').classList.remove('open'));
 
-    function calibrationCenter(element) {
-      const rect = element.getBoundingClientRect();
-      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-    }
+  setInterval(()=>{
+    const s=Math.floor((Date.now()-sessionStart)/1000);
+    $('sessionTime').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  },1000);
 
-    function updateCalibrationStrength() {
-      const drag = calibrationCenter(calibrationDrag);
-      const target = calibrationCenter(calibrationTarget);
-      const distance = Math.hypot(drag.x - target.x, drag.y - target.y);
-      const strength = Math.max(0, Math.min(100, Math.round(100 - (distance / 3.25))));
-      signalStrengthEl.textContent = `Signal strength ${strength}%`;
-      signalMeterFill.style.width = `${strength}%`;
-      if (distance <= 18 && calibrating) lockSignal();
-    }
-
-    function positionCalibrationConstellation() {
-      const angle = Math.random() * Math.PI * 2;
-      const distance = Math.min(window.innerWidth, window.innerHeight) * randomBetween(.21, .31);
-      const targetX = window.innerWidth / 2;
-      const targetY = window.innerHeight / 2;
-      const x = targetX + Math.cos(angle) * distance;
-      const y = targetY + Math.sin(angle) * distance;
-      calibrationDrag.style.left = `${x}px`;
-      calibrationDrag.style.top = `${y}px`;
-      calibrationDrag.style.transform = 'translate(-50%, -50%)';
-      updateCalibrationStrength();
-    }
-
-    function beginCalibration() {
-      if (running || calibrating) return;
-      calibrating = true;
-      startStar.disabled = true;
-      startStar.style.opacity = '.2';
-      document.getElementById('start-ring').style.opacity = '.2';
-      calibrationLayer.classList.remove('locked');
-      calibrationLayer.classList.add('visible');
-      hudStatus.textContent = 'Calibrating';
-      hudStatus.className = 'value gold';
-      liveHashEl.textContent = 'Awaiting explorer alignment…';
-      statusText.innerHTML = 'Drag the golden constellation onto the <strong>distant blue signal</strong>.';
-      signalStrengthEl.textContent = 'Signal strength 0%';
-      signalMeterFill.style.width = '0%';
-      requestAnimationFrame(positionCalibrationConstellation);
-    }
-
-    function lockSignal() {
-      calibrating = false;
-      calibrationLayer.classList.add('locked');
-      calibrationDrag.style.left = '50%';
-      calibrationDrag.style.top = '50%';
-      signalStrengthEl.textContent = 'Signal locked';
-      signalMeterFill.style.width = '100%';
-      hudStatus.textContent = 'Signal locked';
-      statusText.innerHTML = '<strong>Signal locked.</strong> Synchronizing explorer…';
-      setTimeout(() => {
-        calibrationLayer.classList.remove('visible', 'locked');
-        startStar.style.opacity = '1';
-        document.getElementById('start-ring').style.opacity = '1';
-        explore().catch(handleExploreError);
-      }, 950);
-    }
-
-    function handleExploreError(error) {
-      console.error(error);
-      running = false;
-      calibrating = false;
-      startStar.disabled = false;
-      hudStatus.textContent = 'Browser error';
-      statusText.textContent = 'This browser could not access its SHA-256 engine.';
-    }
-
-    calibrationDrag.addEventListener('pointerdown', event => {
-      if (!calibrating) return;
-      dragPointerId = event.pointerId;
-      calibrationDrag.setPointerCapture(event.pointerId);
-      const rect = calibrationDrag.getBoundingClientRect();
-      dragOffsetX = event.clientX - (rect.left + rect.width / 2);
-      dragOffsetY = event.clientY - (rect.top + rect.height / 2);
-      calibrationDrag.classList.add('dragging');
-    });
-
-    calibrationDrag.addEventListener('pointermove', event => {
-      if (!calibrating || event.pointerId !== dragPointerId) return;
-      const halfW = calibrationDrag.offsetWidth / 2;
-      const halfH = calibrationDrag.offsetHeight / 2;
-      const x = Math.max(halfW, Math.min(window.innerWidth - halfW, event.clientX - dragOffsetX));
-      const y = Math.max(halfH, Math.min(window.innerHeight - halfH, event.clientY - dragOffsetY));
-      calibrationDrag.style.left = `${x}px`;
-      calibrationDrag.style.top = `${y}px`;
-      updateCalibrationStrength();
-    });
-
-    function endCalibrationDrag(event) {
-      if (event.pointerId !== dragPointerId) return;
-      calibrationDrag.classList.remove('dragging');
-      dragPointerId = null;
-    }
-
-    calibrationDrag.addEventListener('pointerup', endCalibrationDrag);
-    calibrationDrag.addEventListener('pointercancel', endCalibrationDrag);
-
-    async function explore() {
-      running = true;
-      attempts = 0;
-      lastNodeAttempt = 0;
-      startedAt = performance.now();
-      roundSeed = `${Date.now()}-${randomHex(16)}`;
-      targetPrefix = randomHex(4);
-      targetEl.textContent = `${targetPrefix}…`;
-      attemptsEl.textContent = '0';
-      liveHashEl.textContent = 'Establishing journey signal…';
-      hudStatus.textContent = 'Exploring';
-      hudStatus.className = 'value gold';
-      statusText.innerHTML = 'Journey active — your explorer is searching automatically.';
-      startStar.classList.add('running');
-      startStar.disabled = true;
-      progressWrap.classList.add('visible');
-      makeJourneyNode();
-
-      while (running) {
-        const batchStarted = performance.now();
-
-        for (let i = 0; i < BATCH_SIZE && running; i++) {
-          const nonce = attempts;
-          const hash = await sha256(`${roundSeed}:${nonce}`);
-          attempts++;
-
-          if (attempts % 30 === 0) {
-            liveHashEl.textContent = hash;
-            attemptsEl.textContent = attempts.toLocaleString();
-            updateRate();
-            updateProgress();
-          }
-
-          if (attempts - lastNodeAttempt >= NODE_EVERY) {
-            lastNodeAttempt = attempts;
-            makeJourneyNode();
-          }
-
-          if (hash.startsWith(targetPrefix)) {
-            finishJourney(hash);
-            return;
-          }
-        }
-
-        const intendedMs = (BATCH_SIZE / ACCEPTED_RATE) * 1000;
-        const elapsedMs = performance.now() - batchStarted;
-        if (elapsedMs < intendedMs) {
-          await new Promise(resolve => setTimeout(resolve, intendedMs - elapsedMs));
-        } else {
-          await new Promise(resolve => setTimeout(resolve, 0));
-        }
-      }
-    }
-
-    function finishJourney(hash) {
-      running = false;
-      liveHashEl.textContent = hash;
-      winningHashEl.textContent = hash;
-      attemptsEl.textContent = attempts.toLocaleString();
-      updateRate();
-      progressEl.style.width = '100%';
-      hudStatus.textContent = 'Discovery found';
-      hudStatus.className = 'value green';
-      statusText.innerHTML = '<strong>Discovery found.</strong> Proof of Journey verified.';
-      startStar.classList.remove('running');
-      startStar.classList.add('discovered');
-      burstAtCenter();
-      setTimeout(() => discovery.classList.add('visible'), 700);
-    }
-
-    function resetJourney() {
-      running = false;
-      journeyNumber++;
-      journeyNumberEl.textContent = String(journeyNumber).padStart(6, '0');
-      journeyLayer.innerHTML = '';
-      connectionLayer.innerHTML = '';
-      effectsLayer.innerHTML = '';
-      previousPoint = null;
-      attempts = 0;
-      targetPrefix = '';
-      attemptsEl.textContent = '0';
-      rateEl.textContent = '0 / sec';
-      targetEl.textContent = '----';
-      liveHashEl.textContent = 'No journey signal yet.';
-      progressEl.style.width = '0%';
-      progressWrap.classList.remove('visible');
-      hudStatus.textContent = 'Awaiting explorer';
-      hudStatus.className = 'value gold';
-      statusText.innerHTML = 'Click the <strong>golden star</strong> to begin exploring automatically.';
-      startStar.classList.remove('running', 'discovered');
-      startStar.disabled = false;
-      discovery.classList.remove('visible');
-      calibrationLayer.classList.remove('visible', 'locked');
-      calibrating = false;
-      startStar.style.opacity = '1';
-      document.getElementById('start-ring').style.opacity = '1';
-    }
-
-    startStar.addEventListener('click', beginCalibration);
-
-    newJourneyButton.addEventListener('click', resetJourney);
-    window.addEventListener('resize', createAmbientUniverse);
-
-    createAmbientUniverse();
-  </script>
+  addEventListener('resize',resize); resize(); updateCalibration(); draw();
+})();
+</script>
 </body>
 </html>
