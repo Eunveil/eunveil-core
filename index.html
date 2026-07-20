@@ -141,6 +141,17 @@
     </div>
   </div>
 
+  <div class="modal" id="completionModal">
+    <div class="signature-card">
+      <div class="sig-emblem">✓</div>
+      <div class="eyebrow" style="margin-top:24px">SOLAR SYSTEM COMPLETE</div>
+      <h2 id="completedSystemTitle">System Explored</h2>
+      <p>Every object in this solar system has been decoded.</p>
+      <div class="sig-reward">10 / 10 OBJECTS</div>
+      <button class="primary" id="returnGalaxyBtn" type="button">Return to Galaxy</button>
+    </div>
+  </div>
+
 <script>
 (() => {
   const canvas=document.getElementById('universe');
@@ -153,8 +164,10 @@
 
   let width=0,height=0,stars=[],particles=[],systemObjects=[];
   let yaw=0,pitch=0,zoom=760,targetYaw=0,targetPitch=0,targetZoom=760;
+  let systemYaw=0,systemPitch=0,systemZoom=1,targetSystemYaw=0,targetSystemPitch=0,targetSystemZoom=1;
   let dragging=false,lastX=0,lastY=0,moved=false,locked=false,mode='universe';
   let selectedStar=null,currentObject=null,currentHash='',currentSegment='',segmentStart=0;
+  let pendingSystemCompletion=false;
   let nonce=0,validations=0,signatures=0,contribution=0,balance=0,logCount=0;
   let sessionStart=Date.now();
   const palette=['#ffd98b','#8fc5ff','#ff8f72','#b8ff91','#f4f0e8'];
@@ -186,12 +199,12 @@
     const types=[...orbitTypes];
     while(types.length<9)types.push(orbitTypes[Math.floor(Math.random()*orbitTypes.length)]);
     for(let i=types.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[types[i],types[j]]=[types[j],types[i]]}
-    systemObjects=[{id:0,type:'star',label:'Star',angle:0,ring:0,size:34,color:'#ffd98b',sx:0,sy:0,pulse:0}];
+    systemObjects=[{id:0,type:'star',label:'Star',angle:0,ring:0,size:34,color:'#ffd98b',sx:0,sy:0,pulse:0,decoded:false}];
     types.forEach((type,i)=>{
       const ring=1+Math.floor(i/3),slot=i%3;
       const angle=(slot/3)*Math.PI*2+ring*.52+(Math.random()-.5)*.24;
       const meta={planet:['Planet','#79b7ff',20],moon:['Moon','#e5e1da',13],satellite:['Satellite','#72e5a0',12],station:['Space Station','#d9a64b',17]}[type];
-      systemObjects.push({id:i+1,type,label:meta[0],angle,ring,size:meta[2],color:meta[1],sx:0,sy:0,pulse:Math.random()*6.28});
+      systemObjects.push({id:i+1,type,label:meta[0],angle,ring,size:meta[2],color:meta[1],sx:0,sy:0,pulse:Math.random()*6.28,decoded:false});
     });
   }
 
@@ -211,6 +224,7 @@
 
   function draw(){
     yaw+=(targetYaw-yaw)*.075;pitch+=(targetPitch-pitch)*.075;zoom+=(targetZoom-zoom)*.07;
+    systemYaw+=(targetSystemYaw-systemYaw)*.09;systemPitch+=(targetSystemPitch-systemPitch)*.09;systemZoom+=(targetSystemZoom-systemZoom)*.09;
     ctx.fillStyle='#030508';ctx.fillRect(0,0,width,height);drawNebula();
     if(mode==='universe')drawUniverse();else drawSystem();
     updateParticles();requestAnimationFrame(draw);
@@ -233,33 +247,54 @@
   }
 
   function drawSystem(){
-    const cx=width/2,cy=height/2+15,maxR=Math.min(width,height)*.38;
+    const cx=width/2,cy=height/2+15,maxR=Math.min(width,height)*.38*systemZoom;
+    const cosY=Math.cos(systemYaw),sinY=Math.sin(systemYaw),cosP=Math.cos(systemPitch),sinP=Math.sin(systemPitch);
+
     ctx.globalAlpha=.28;
-    for(let i=1;i<=3;i++){ctx.strokeStyle='rgba(255,255,255,.13)';ctx.beginPath();ctx.ellipse(cx,cy,maxR*(i/3),maxR*(i/3)*.42,0,0,Math.PI*2);ctx.stroke()}
+    for(let i=1;i<=3;i++){
+      const rr=maxR*(i/3);
+      ctx.strokeStyle='rgba(255,255,255,.13)';
+      ctx.beginPath();
+      ctx.ellipse(cx,cy,rr,rr*Math.max(.18,.42+systemPitch*.18),0,0,Math.PI*2);
+      ctx.stroke();
+    }
     ctx.globalAlpha=1;
-    for(const o of systemObjects){
+
+    const projected=systemObjects.map(o=>{
       o.pulse+=.018;
-      if(o.type==='star'){o.sx=cx;o.sy=cy}else{const rr=maxR*(o.ring/3);o.sx=cx+Math.cos(o.angle)*rr;o.sy=cy+Math.sin(o.angle)*rr*.42}
-      drawObject(o);
+      if(o.type==='star')return{o,sx:cx,sy:cy,depth:0};
+      const rr=maxR*(o.ring/3);
+      const baseX=Math.cos(o.angle)*rr;
+      const baseZ=Math.sin(o.angle)*rr;
+      const x=baseX*cosY-baseZ*sinY;
+      const z=baseX*sinY+baseZ*cosY;
+      const y=-z*sinP;
+      return{o,sx:cx+x,sy:cy+y+z*cosP*.42,depth:z};
+    }).sort((a,b)=>a.depth-b.depth);
+
+    for(const item of projected){
+      item.o.sx=item.sx;
+      item.o.sy=item.sy;
+      drawObject(item.o);
     }
   }
 
   function drawObject(o){
     const r=o.size*(1+Math.sin(o.pulse)*.05);
-    const glow=ctx.createRadialGradient(o.sx,o.sy,0,o.sx,o.sy,r*2.7);glow.addColorStop(0,o.color);glow.addColorStop(.2,o.color);glow.addColorStop(1,'rgba(0,0,0,0)');ctx.globalAlpha=.32;ctx.fillStyle=glow;ctx.beginPath();ctx.arc(o.sx,o.sy,r*2.7,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-    ctx.save();ctx.translate(o.sx,o.sy);
+    if(!o.decoded){const glow=ctx.createRadialGradient(o.sx,o.sy,0,o.sx,o.sy,r*2.7);glow.addColorStop(0,o.color);glow.addColorStop(.2,o.color);glow.addColorStop(1,'rgba(0,0,0,0)');ctx.globalAlpha=.32;ctx.fillStyle=glow;ctx.beginPath();ctx.arc(o.sx,o.sy,r*2.7,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}
+    ctx.save();ctx.translate(o.sx,o.sy);ctx.globalAlpha=o.decoded?.34:1;
     if(o.type==='star'){ctx.fillStyle=o.color;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill()}
     if(o.type==='planet'){ctx.fillStyle=o.color;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,0,r*1.55,r*.42,-.24,0,Math.PI*2);ctx.stroke()}
     if(o.type==='moon'){ctx.fillStyle=o.color;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.arc(-r*.3,-r*.1,r*.23,0,Math.PI*2);ctx.arc(r*.28,r*.22,r*.15,0,Math.PI*2);ctx.fill()}
     if(o.type==='satellite'){ctx.strokeStyle=o.color;ctx.lineWidth=3;ctx.strokeRect(-r*.35,-r*.35,r*.7,r*.7);ctx.beginPath();ctx.moveTo(-r*.35,0);ctx.lineTo(-r*1.15,0);ctx.moveTo(r*.35,0);ctx.lineTo(r*1.15,0);ctx.stroke();ctx.fillStyle='rgba(121,183,255,.55)';ctx.fillRect(-r*1.4,-r*.45,r*.25,r*.9);ctx.fillRect(r*1.15,-r*.45,r*.25,r*.9)}
     if(o.type==='station'){ctx.strokeStyle=o.color;ctx.lineWidth=3;ctx.strokeRect(-r*.65,-r*.3,r*1.3,r*.6);ctx.beginPath();ctx.arc(0,0,r*.32,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(-r*1.1,0);ctx.lineTo(-r*.65,0);ctx.moveTo(r*.65,0);ctx.lineTo(r*1.1,0);ctx.stroke()}
-    ctx.restore();ctx.fillStyle='rgba(245,239,229,.78)';ctx.font='10px Inter';ctx.textAlign='center';ctx.fillText(o.label.toUpperCase(),o.sx,o.sy+r+18);
+    ctx.restore();ctx.globalAlpha=1;ctx.fillStyle=o.decoded?'rgba(114,229,160,.8)':'rgba(245,239,229,.78)';ctx.font='10px Inter';ctx.textAlign='center';ctx.fillText((o.decoded?'✓ ':'')+o.label.toUpperCase(),o.sx,o.sy+r+18);
   }
 
   function updateParticles(){for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.life-=.025;p.x+=p.vx;p.y+=p.vy;p.vx*=.985;p.vy*=.985;ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();if(p.life<=0)particles.splice(i,1)}ctx.globalAlpha=1}
   function burst(x,y,color){for(let i=0;i<55;i++){const a=Math.random()*6.28,sp=.5+Math.random()*5;particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:.5+Math.random()*2,life:.7+Math.random()*.5,color})}}
   function hitStar(x,y){let hit=null,best=Infinity;for(const s of stars){if(!s.visible||!s.clickable)continue;const d=Math.hypot(x-s.sx,y-s.sy),radius=clamp(s.size*(620/s.depth)*9,12,34);if(d<radius&&d<best){hit=s;best=d}}return hit}
-  function hitObject(x,y){let hit=null,best=Infinity;for(const o of systemObjects){const d=Math.hypot(x-o.sx,y-o.sy),radius=Math.max(24,o.size*1.55);if(d<radius&&d<best){hit=o;best=d}}return hit}
+  function hitObject(x,y){let hit=null,best=Infinity;for(const o of systemObjects){if(o.decoded)continue;const d=Math.hypot(x-o.sx,y-o.sy),radius=Math.max(24,o.size*1.55);if(d<radius&&d<best){hit=o;best=d}}return hit}
 
   async function sha256(text){const data=new TextEncoder().encode(text),digest=await crypto.subtle.digest('SHA-256',data);return[...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase()}
 
@@ -268,12 +303,12 @@
     const desiredYaw=Math.atan2(star.x,star.z),flat=Math.sqrt(star.x*star.x+star.z*star.z),desiredPitch=-Math.atan2(star.y,flat);
     targetYaw+=desiredYaw*.78;targetPitch=clamp(targetPitch+desiredPitch*.78,-1.15,1.15);targetZoom=220;
     await new Promise(r=>setTimeout(r,850));
-    buildSolarSystem();mode='system';yaw=pitch=targetYaw=targetPitch=0;zoom=targetZoom=760;
-    $('systemTitle').textContent=`E-${String(star.id).padStart(4,'0')}`;$('systemName').classList.add('show');$('help').textContent='CLICK THE STAR OR ANY ORBITING OBJECT TO CREATE THE NEXT NONCE';$('help').style.opacity='1';$('hash').textContent='Solar system entered. Select an object to generate the next SHA-256 hash.';locked=false;
+    buildSolarSystem();mode='system';yaw=pitch=targetYaw=targetPitch=0;zoom=targetZoom=760;systemYaw=targetSystemYaw=0;systemPitch=targetSystemPitch=0;systemZoom=targetSystemZoom=1;
+    $('systemTitle').textContent=`E-${String(star.id).padStart(4,'0')}`;$('systemName').classList.add('show');$('help').textContent='DRAG TO ROTATE · SCROLL TO ZOOM · CLICK AN UNDECODED OBJECT';$('help').style.opacity='1';$('hash').textContent='Solar system entered. Select an object to generate the next SHA-256 hash.';locked=false;
   }
 
   async function openDecoder(object){
-    if(locked)return;locked=true;currentObject=object;nonce++;
+    if(locked||object.decoded)return;locked=true;currentObject=object;nonce++;
     currentHash=await sha256(`EUNVEIL|EXP1-P1|SYSTEM:${selectedStar.id}|OBJECT:${object.type}:${object.id}|NONCE:${nonce}`);
     segmentStart=(parseInt(currentHash.slice(0,2),16)%(currentHash.length-4));currentSegment=currentHash.slice(segmentStart,segmentStart+4);
     $('nonceCount').textContent=nonce;$('hash').textContent=currentHash;$('rarity').textContent='HASH CREATED — DECODING REQUIRED';
@@ -329,25 +364,51 @@
   function resetGrid(grid,msg){[...grid.children].forEach(b=>b.classList.remove('active'));status(msg,false);setTimeout(()=>renderDecoder(currentObject.type,currentSegment),350)}
   function status(msg,good){$('decoderStatus').textContent=msg;$('decoderStatus').style.color=good?'var(--green)':'var(--red)'}
 
-  function completeDecoder(){status('Hash decoded. Checking whether it is below the target...',true);setTimeout(()=>{$('decoderModal').classList.remove('open');resolveHash();locked=false},550)}
+  function completeDecoder(){
+    status('Hash decoded. Checking whether it is below the target...',true);
+    setTimeout(()=>{
+      $('decoderModal').classList.remove('open');
+      currentObject.decoded=true;
+      pendingSystemCompletion=systemObjects.every(o=>o.decoded);
+      resolveHash();
+      locked=false;
+    },550)
+  }
 
   function resolveHash(){
     validations++;const sample=parseInt(currentHash.slice(0,8),16),target=Math.floor(0x100000000/TARGET_ODDS),isSignature=sample<target,quality=1-sample/0xFFFFFFFF;
     $('validations').textContent=validations;$('rarity').textContent=`TOP ${Math.max(.0001,(1-quality)*100).toFixed(4)}% HASH`;
     if(isSignature){signatures++;const reward=10;balance+=reward;$('signatures').textContent=signatures;$('balance').textContent=fmt(balance)+' EUN';$('depositType').textContent='TRUE TARGET — SIGNATURE';$('reward').textContent='+'+fmt(reward)+' EUN';$('flashSmall').textContent='HASH VALIDATED';$('flashTitle').textContent='SIGNATURE FOUND';$('flashReward').textContent='+'+reward.toFixed(8)+' EUN';$('signatureReward').textContent='+'+reward.toFixed(8)+' EUN';$('signatureContribution').textContent=`You made ${contribution} accepted false validations before this signature.`;addLog('SIGNATURE',`+${reward.toFixed(8)}`);showFlash();setTimeout(()=>$('signatureModal').classList.add('open'),650)}
-    else{contribution++;$('contribution').textContent=contribution;$('contributionLabel').textContent=contribution;$('tideFill').style.width=Math.min(100,contribution/TARGET_ODDS*100)+'%';$('depositType').textContent='FALSE TARGET — ACCEPTED';$('reward').textContent='CONTRIBUTION +1';$('flashSmall').textContent='HASH VALIDATED';$('flashTitle').textContent='FALSE TARGET';$('flashReward').textContent='Contribution +1';addLog('FALSE VALIDATION','+1');showFlash()}
+    else{contribution++;$('contribution').textContent=contribution;$('contributionLabel').textContent=contribution;$('tideFill').style.width=Math.min(100,contribution/TARGET_ODDS*100)+'%';$('depositType').textContent='FALSE TARGET — ACCEPTED';$('reward').textContent='CONTRIBUTION +1';$('flashSmall').textContent='HASH VALIDATED';$('flashTitle').textContent='FALSE TARGET';$('flashReward').textContent='Contribution +1';addLog('FALSE VALIDATION','+1');showFlash();if(pendingSystemCompletion)setTimeout(showSystemCompletion,850)}
   }
 
   function showFlash(){$('flash').classList.add('show');setTimeout(()=>$('flash').classList.remove('show'),760)}
+  function showSystemCompletion(){
+    pendingSystemCompletion=false;
+    $('completedSystemTitle').textContent=`E-${String(selectedStar.id).padStart(4,'0')} Explored`;
+    $('completionModal').classList.add('open');
+  }
+  function returnToGalaxy(){
+    $('completionModal').classList.remove('open');
+    mode='universe';
+    systemObjects=[];
+    selectedStar=null;
+    currentObject=null;
+    $('systemName').classList.remove('show');
+    $('help').textContent='DRAG TO ROTATE · SCROLL TO MOVE · CLICK A GLOWING STAR';
+    $('hash').textContent='Solar system complete. Select another star to continue.';
+    targetYaw=0;targetPitch=0;targetZoom=760;
+  }
   function addLog(type,value){logCount++;const row=document.createElement('div');row.className='log-row';row.innerHTML=`<span>${pad(logCount)}</span><b>${type}</b><em>${value}</em>`;$('log').prepend(row);while($('log').children.length>12)$('log').lastChild.remove()}
 
   canvas.addEventListener('pointerdown',e=>{if(locked)return;dragging=true;moved=false;lastX=e.clientX;lastY=e.clientY;canvas.classList.add('dragging');canvas.setPointerCapture(e.pointerId)});
-  canvas.addEventListener('pointermove',e=>{if(!dragging||mode==='system')return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;targetYaw-=dx*.0042;targetPitch=clamp(targetPitch-dy*.0038,-1.25,1.25);lastX=e.clientX;lastY=e.clientY});
+  canvas.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;if(mode==='universe'){targetYaw-=dx*.0042;targetPitch=clamp(targetPitch-dy*.0038,-1.25,1.25)}else{targetSystemYaw-=dx*.006;targetSystemPitch=clamp(targetSystemPitch-dy*.004,-.9,.9)}lastX=e.clientX;lastY=e.clientY});
   canvas.addEventListener('pointerup',e=>{dragging=false;canvas.classList.remove('dragging');if(moved||locked)return;if(mode==='universe'){const hit=hitStar(e.clientX,e.clientY);if(hit)enterSystem(hit)}else{const hit=hitObject(e.clientX,e.clientY);if(hit)openDecoder(hit)}});
-  canvas.addEventListener('wheel',e=>{if(mode!=='universe')return;e.preventDefault();targetZoom=clamp(targetZoom+e.deltaY*.55,260,1450)},{passive:false});
-  canvas.addEventListener('dblclick',()=>{if(mode==='universe'){targetYaw=0;targetPitch=0;targetZoom=760}});
+  canvas.addEventListener('wheel',e=>{e.preventDefault();if(mode==='universe')targetZoom=clamp(targetZoom+e.deltaY*.55,260,1450);else targetSystemZoom=clamp(targetSystemZoom-e.deltaY*.001,.62,1.45)},{passive:false});
+  canvas.addEventListener('dblclick',()=>{if(mode==='universe'){targetYaw=0;targetPitch=0;targetZoom=760}else{targetSystemYaw=0;targetSystemPitch=0;targetSystemZoom=1}});
   $('closeDecoder').addEventListener('click',()=>{$('decoderModal').classList.remove('open');locked=false});
-  $('continueBtn').addEventListener('click',()=>{$('signatureModal').classList.remove('open');contribution=0;$('contribution').textContent='0';$('contributionLabel').textContent='0';$('tideFill').style.width='0%'});
+  $('continueBtn').addEventListener('click',()=>{$('signatureModal').classList.remove('open');contribution=0;$('contribution').textContent='0';$('contributionLabel').textContent='0';$('tideFill').style.width='0%';if(pendingSystemCompletion)showSystemCompletion()});
+  $('returnGalaxyBtn').addEventListener('click',returnToGalaxy);
   setInterval(()=>{const s=Math.floor((Date.now()-sessionStart)/1000);$('sessionTime').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},1000);
   addEventListener('resize',resize);resize();draw();
 })();
