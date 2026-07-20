@@ -1,391 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Eunveil — Proof of Journey interactive universe prototype" />
-  <title>Eunveil — Proof of Journey</title>
-  <style>
-    :root{
-      --bg:#030508; --panel:rgba(8,11,17,.76); --panel2:rgba(15,20,29,.78);
-      --gold:#d9a64b; --gold2:#ffe0a0; --text:#f5efe5; --muted:#938d84;
-      --line:rgba(216,166,74,.25); --green:#72e5a0; --blue:#79b7ff;
-    }
-    *{box-sizing:border-box}
-    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
-    button{font:inherit}
-    #universe{position:fixed;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
-    #universe.dragging{cursor:grabbing}
-    .vignette,.grain{position:fixed;inset:0;pointer-events:none}
-    .vignette{background:radial-gradient(circle at center,transparent 34%,rgba(0,0,0,.36) 72%,rgba(0,0,0,.82) 100%)}
-    .grain{opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitchTiles'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E")}
-    .topbar{position:fixed;z-index:20;left:0;right:0;top:0;height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid rgba(255,255,255,.06);background:linear-gradient(to bottom,rgba(3,5,8,.94),rgba(3,5,8,.26));backdrop-filter:blur(15px)}
-    .brand{display:flex;align-items:center;gap:12px;letter-spacing:.24em;font-size:12px;font-weight:800}
-    .brand-e{width:36px;height:36px;border:1px solid var(--gold);border-radius:50%;display:grid;place-items:center;font-family:Georgia,serif;font-size:22px;color:var(--gold2);box-shadow:0 0 24px rgba(216,166,74,.14)}
-    .phase{font-size:11px;color:var(--muted);letter-spacing:.14em;text-align:right}.phase strong{display:block;color:var(--gold2);font-size:12px;margin-top:5px}
-    .hud{position:fixed;z-index:20;top:92px;left:22px;width:min(330px,calc(100vw - 44px));display:grid;gap:12px}
-    .card{border:1px solid rgba(255,255,255,.08);border-radius:18px;background:var(--panel);backdrop-filter:blur(16px);padding:17px}
-    .eyebrow{font-size:9px;letter-spacing:.25em;color:var(--gold2);font-weight:800}
-    .balance{margin-top:7px;font-family:Georgia,serif;font-size:29px;color:var(--gold2);word-break:break-all}
-    .subline{display:flex;justify-content:space-between;gap:15px;margin-top:9px;color:var(--muted);font-size:11px}
-    .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .metric{padding:12px;border:1px solid rgba(255,255,255,.06);border-radius:13px;background:rgba(255,255,255,.025)}
-    .metric span{display:block;color:var(--muted);font-size:9px;letter-spacing:.13em}.metric strong{display:block;margin-top:6px;font-size:15px}
-    .tide-track{height:4px;margin-top:12px;background:rgba(255,255,255,.08);border-radius:5px;overflow:hidden}.tide-fill{height:100%;width:12%;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .5s}
-    .right-panel{position:fixed;z-index:20;top:92px;right:22px;width:min(360px,calc(100vw - 44px));display:grid;gap:12px}
-    .hash{font-family:Consolas,monospace;font-size:11px;line-height:1.7;color:#d9d3ca;word-break:break-all;min-height:38px}
-    .discovery{display:flex;justify-content:space-between;align-items:end;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)}
-    .discovery strong{font-family:Georgia,serif;font-size:24px;color:var(--gold2);text-align:right}
-    .rarity{display:inline-flex;margin-top:10px;padding:6px 9px;border:1px solid var(--line);border-radius:999px;color:var(--gold2);font-size:9px;letter-spacing:.16em}
-    .help{position:fixed;z-index:20;left:50%;bottom:23px;transform:translateX(-50%);padding:11px 16px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(5,8,12,.7);backdrop-filter:blur(12px);color:#aaa39a;font-size:10px;letter-spacing:.1em;white-space:nowrap;transition:opacity .4s}
-    .crosshair{position:fixed;z-index:12;left:50%;top:50%;width:42px;height:42px;transform:translate(-50%,-50%);pointer-events:none;opacity:.32}
-    .crosshair:before,.crosshair:after{content:"";position:absolute;background:var(--gold2)}.crosshair:before{left:20px;top:0;width:1px;height:42px}.crosshair:after{top:20px;left:0;height:1px;width:42px}
-    .crosshair i{position:absolute;inset:9px;border:1px solid var(--gold);border-radius:50%}
-    .journey-flash{position:fixed;z-index:30;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(255,216,139,.16),rgba(0,0,0,.8));transition:opacity .35s}
-    .journey-flash.show{opacity:1}.journey-flash div{text-align:center}.journey-flash small{letter-spacing:.32em;color:var(--gold2)}.journey-flash h2{font-family:Georgia,serif;font-size:clamp(44px,8vw,96px);font-weight:500;margin:14px 0}.journey-flash p{color:#c7bda9}
-    .signature{position:fixed;z-index:50;inset:0;display:none;place-items:center;padding:24px;background:rgba(0,0,0,.82);backdrop-filter:blur(20px)}
-    .signature.open{display:grid}.signature-card{width:min(680px,94vw);text-align:center;padding:48px 30px;border:1px solid var(--gold);border-radius:28px;background:radial-gradient(circle at top,rgba(216,166,74,.14),rgba(8,11,17,.96) 62%);box-shadow:0 0 90px rgba(216,166,74,.18)}
-    .sig-emblem{width:116px;height:116px;margin:auto;border:1px solid var(--gold);border-radius:50%;display:grid;place-items:center;font-family:Georgia,serif;font-size:72px;color:var(--gold2);box-shadow:0 0 55px rgba(216,166,74,.2)}
-    .signature h2{font-family:Georgia,serif;font-size:clamp(42px,7vw,76px);font-weight:500;margin:24px 0 10px}.signature p{color:#b8b0a5;line-height:1.7}.signature .sig-reward{font-size:32px;color:var(--gold2);margin:18px}
-    .primary{border:1px solid var(--gold2);border-radius:999px;padding:14px 23px;background:linear-gradient(135deg,#a87228,#efc36d);color:#090704;font-weight:850;cursor:pointer}
-    .log{max-height:125px;overflow:auto;margin-top:10px;padding-right:4px}.log-row{display:grid;grid-template-columns:42px 1fr auto;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:10px}.log-row span{color:var(--muted)}.log-row b{color:#d8d1c6}.log-row em{font-style:normal;color:var(--gold2)}
-    .mobile-toggle{display:none}
-    @media(max-width:850px){
-      .right-panel{top:auto;bottom:72px;right:12px;width:calc(100vw - 24px)}
-      .right-panel .log-card{display:none}
-      .hud{top:82px;left:12px;width:260px}
-      .card{padding:13px}.balance{font-size:23px}.help{bottom:18px}
-      .topbar{padding:0 14px}.phase{display:none}
-    }
-    @media(max-width:560px){
-      .hud{width:calc(100vw - 24px)}.metric-grid{grid-template-columns:repeat(4,1fr)}.metric{padding:8px}.metric strong{font-size:12px}
-      .right-panel{bottom:62px}.hash-card{padding:12px}.discovery strong{font-size:19px}.help{font-size:8px;padding:9px 12px}
-    }
-  </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Eunveil — Proof of Journey</title>
+<style>
+:root{--bg:#030508;--panel:rgba(8,11,17,.84);--gold:#d9a64b;--gold2:#ffe0a0;--text:#f5efe5;--muted:#938d84;--green:#72e5a0;--red:#ff7d72}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}button,input{font:inherit}#universe{position:fixed;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}.vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at center,transparent 35%,rgba(0,0,0,.35) 72%,rgba(0,0,0,.86) 100%)}
+.topbar{position:fixed;z-index:20;left:0;right:0;top:0;height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid rgba(255,255,255,.06);background:linear-gradient(rgba(3,5,8,.95),rgba(3,5,8,.28));backdrop-filter:blur(14px)}.brand{display:flex;align-items:center;gap:12px;letter-spacing:.24em;font-size:12px;font-weight:800}.brand-e{width:36px;height:36px;border:1px solid var(--gold);border-radius:50%;display:grid;place-items:center;font-family:Georgia,serif;font-size:22px;color:var(--gold2)}.phase{font-size:11px;color:var(--muted);letter-spacing:.14em;text-align:right}.phase strong{display:block;color:var(--gold2);margin-top:5px}
+.hud,.right{position:fixed;z-index:20;top:92px;width:min(350px,calc(100vw - 44px));display:grid;gap:12px;pointer-events:none}.hud{left:22px}.right{right:22px}.card{border:1px solid rgba(255,255,255,.08);border-radius:18px;background:var(--panel);backdrop-filter:blur(16px);padding:17px}.eyebrow{font-size:9px;letter-spacing:.24em;color:var(--gold2);font-weight:800}.balance{margin-top:7px;font-family:Georgia,serif;font-size:28px;color:var(--gold2)}.subline{display:flex;justify-content:space-between;gap:12px;margin-top:9px;color:var(--muted);font-size:11px}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}.metric{padding:11px;border:1px solid rgba(255,255,255,.06);border-radius:13px;background:rgba(255,255,255,.025)}.metric span{display:block;color:var(--muted);font-size:9px;letter-spacing:.12em}.metric strong{display:block;margin-top:6px;font-size:15px}.track{height:8px;margin-top:12px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}.fill{height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .3s}.hash{font-family:Consolas,monospace;font-size:11px;line-height:1.65;word-break:break-all;min-height:38px}.rarity{display:inline-flex;margin-top:10px;padding:6px 9px;border:1px solid rgba(216,166,74,.25);border-radius:999px;color:var(--gold2);font-size:9px;letter-spacing:.15em}.result{display:flex;justify-content:space-between;align-items:end;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)}.result strong{font-family:Georgia,serif;font-size:20px;color:var(--gold2)}.help{position:fixed;z-index:20;left:50%;bottom:22px;transform:translateX(-50%);padding:11px 16px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(5,8,12,.78);color:#aaa39a;font-size:10px;letter-spacing:.1em;white-space:nowrap}.system-title{position:fixed;z-index:20;top:88px;left:50%;transform:translateX(-50%);text-align:center;opacity:0;transition:.3s;pointer-events:none}.system-title.show{opacity:1}.system-title h2{margin:7px 0 0;font-family:Georgia,serif;font-size:28px;color:var(--gold2);font-weight:500}
+.modal{position:fixed;z-index:50;inset:0;display:none;place-items:center;padding:24px;background:rgba(0,0,0,.83);backdrop-filter:blur(20px)}.modal.open{display:grid}.modal-card{width:min(720px,94vw);padding:30px;border:1px solid var(--gold);border-radius:26px;background:radial-gradient(circle at top,rgba(216,166,74,.14),rgba(8,11,17,.98) 62%)}.modal-head{display:flex;align-items:center;justify-content:space-between;gap:18px}.modal-head h2{font-family:Georgia,serif;font-size:31px;font-weight:500;margin:6px 0 0}.close{width:38px;height:38px;border:1px solid rgba(255,255,255,.12);border-radius:50%;background:rgba(255,255,255,.04);color:var(--text);cursor:pointer}.note{color:var(--muted);font-size:12px;line-height:1.6;text-align:center}.stage{min-height:255px;border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:22px;background:rgba(255,255,255,.025);display:grid;place-items:center}.status{text-align:center;min-height:22px;margin-top:16px;color:var(--muted);font-size:12px}.digit-row{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}.digit,.crater,.terminal{width:54px;height:54px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(255,255,255,.05);color:var(--text);font-family:Consolas,monospace;cursor:pointer}.crater{border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,.13),rgba(255,255,255,.02) 42%,rgba(0,0,0,.2) 43%),#25282f}.used{opacity:.35;pointer-events:none}.grid{display:grid;grid-template-columns:repeat(4,54px);gap:10px}.orbit{width:min(320px,78vw);aspect-ratio:1;border:1px solid rgba(255,255,255,.08);border-radius:50%;position:relative}.ring{position:absolute;inset:15%;border:1px solid rgba(121,183,255,.35);border-radius:50%}.ring.two{inset:34%;border-color:rgba(216,166,74,.42)}.node{position:absolute;width:50px;height:50px;border:1px solid rgba(255,255,255,.14);border-radius:50%;background:#0b0f15;color:var(--text);cursor:pointer}.node.n0{left:50%;top:2%;transform:translateX(-50%)}.node.n1{right:2%;top:50%;transform:translateY(-50%)}.node.n2{left:50%;bottom:2%;transform:translateX(-50%)}.node.n3{left:2%;top:50%;transform:translateY(-50%)}.tuner{width:min(470px,85vw);display:grid;gap:18px}.freq{text-align:center;font-family:Consolas,monospace;font-size:36px;color:var(--gold2)}.tuner input{width:100%}.primary{border:1px solid var(--gold2);border-radius:999px;padding:14px 23px;background:linear-gradient(135deg,#a87228,#efc36d);color:#090704;font-weight:850;cursor:pointer}.flash{position:fixed;z-index:45;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(255,216,139,.16),rgba(0,0,0,.8));transition:.3s}.flash.show{opacity:1}.flash h2{font-family:Georgia,serif;font-size:clamp(42px,7vw,82px);font-weight:500;margin:12px}.flash small{letter-spacing:.3em;color:var(--gold2)}.win{text-align:center}.win h2{font-family:Georgia,serif;font-size:clamp(42px,7vw,72px);font-weight:500;margin:20px 0 8px}.win .reward{font-size:31px;color:var(--gold2);margin:18px}.log{max-height:125px;overflow:auto;margin-top:10px}.log-row{display:grid;grid-template-columns:42px 1fr auto;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:10px}.log-row span{color:var(--muted)}.log-row em{font-style:normal;color:var(--gold2)}
+@media(max-width:850px){.right{top:auto;bottom:70px;right:12px;width:calc(100vw - 24px)}.right .log-card{display:none}.hud{top:82px;left:12px;width:270px}.topbar{padding:0 14px}.phase{display:none}.system-title{top:76px}}@media(max-width:560px){.hud{width:calc(100vw - 24px)}.metrics{grid-template-columns:repeat(4,1fr)}.metric{padding:8px}.metric strong{font-size:12px}.modal-card{padding:22px 15px}.grid{grid-template-columns:repeat(4,47px);gap:8px}.crater,.terminal{width:47px;height:47px}.help{font-size:8px}}
+</style>
 </head>
 <body>
-  <canvas id="universe"></canvas>
-  <div class="vignette"></div><div class="grain"></div>
-  <header class="topbar">
-    <div class="brand"><span class="brand-e">E</span><span>EUNVEIL</span></div>
-    <div class="phase">PROOF OF JOURNEY PROTOTYPE<strong>EXPEDITION I · PHASE I</strong></div>
-  </header>
-
-  <section class="hud">
-    <div class="card">
-      <div class="eyebrow">TOTAL DISCOVERED</div>
-      <div class="balance" id="balance">0.000000000000 EUN</div>
-      <div class="subline"><span>Wallet: Prototype Explorer</span><span id="sessionTime">00:00</span></div>
-    </div>
-    <div class="metric-grid">
-      <div class="metric"><span>JOURNEYS</span><strong id="journeys">0</strong></div>
-      <div class="metric"><span>SIGNATURES</span><strong id="signatures">0</strong></div>
-      <div class="metric"><span>BEST HASH</span><strong id="bestScore">—</strong></div>
-      <div class="metric"><span>CURRENT TIDE</span><strong id="tideLabel">CALM</strong></div>
-    </div>
-    <div class="card">
-      <div class="eyebrow">SIGNATURE CALIBRATION</div>
-      <div class="subline"><span>Signal density rises as you explore</span><span id="targetOdds">≈ 1 / 160</span></div>
-      <div class="tide-track"><div class="tide-fill" id="tideFill"></div></div>
-    </div>
-  </section>
-
-  <section class="right-panel">
-    <div class="card hash-card">
-      <div class="eyebrow">LATEST SHA-256 DISCOVERY</div>
-      <div class="hash" id="hash">Select a star to begin a Journey.</div>
-      <span class="rarity" id="rarity">AWAITING SIGNAL</span>
-      <div class="discovery">
-        <div><div class="eyebrow">DEPOSIT</div><small id="depositType" style="color:var(--muted)">None</small></div>
-        <strong id="reward">0.000000000000 EUN</strong>
-      </div>
-    </div>
-    <div class="card log-card">
-      <div class="eyebrow">JOURNEY LOG</div>
-      <div class="log" id="log"><div class="log-row"><span>000</span><b>Universe initialized</b><em>READY</em></div></div>
-    </div>
-  </section>
-
-  <div class="crosshair"><i></i></div>
-  <div class="help" id="help">DRAG TO ROTATE · SCROLL TO MOVE · CLICK A GLOWING STAR</div>
-
-  <div class="journey-flash" id="flash">
-    <div><small>JOURNEY VERIFIED</small><h2 id="flashTitle">Dust Discovered</h2><p id="flashReward">+0.00000001 EUN</p></div>
-  </div>
-
-  <div class="signature" id="signatureModal">
-    <div class="signature-card">
-      <div class="sig-emblem">E</div>
-      <div class="eyebrow" style="margin-top:24px">THE TARGET HAS BEEN FOUND</div>
-      <h2>Signature Discovered</h2>
-      <p>Your Journey produced a SHA-256 value beneath the current Signature target. The universe has verified the discovery.</p>
-      <div class="sig-reward" id="signatureReward">+10.00000000 EUN</div>
-      <button class="primary" id="continueBtn">Continue Exploring</button>
-    </div>
-  </div>
-
+<canvas id="universe"></canvas><div class="vignette"></div>
+<header class="topbar"><div class="brand"><span class="brand-e">E</span><span>EUNVEIL</span></div><div class="phase">PROOF OF JOURNEY PROTOTYPE<strong>EXPEDITION I · PHASE I</strong></div></header>
+<section class="hud">
+<div class="card"><div class="eyebrow">TOTAL DISCOVERED</div><div class="balance" id="balance">0.000000000000 EUN</div><div class="subline"><span>Wallet: Prototype Explorer</span><span id="session">00:00</span></div></div>
+<div class="metrics"><div class="metric"><span>VALIDATIONS</span><strong id="validations">0</strong></div><div class="metric"><span>SIGNALS</span><strong id="signals">0</strong></div><div class="metric"><span>NETWORK TOTAL</span><strong id="network">0</strong></div><div class="metric"><span>YOUR SHARE</span><strong id="share">0%</strong></div></div>
+<div class="card"><div class="eyebrow">CURRENT NETWORK JOURNEY</div><div class="subline"><span>Accepted false validations</span><span id="journeyLabel">0</span></div><div class="track"><div class="fill" id="fill"></div></div></div>
+</section>
+<section class="right"><div class="card"><div class="eyebrow">LATEST SHA-256 VALIDATION</div><div class="hash" id="hash">Select a glowing star to enter a solar system.</div><span class="rarity" id="rarity">AWAITING EXPLORATION</span><div class="result"><div><div class="eyebrow">RESULT</div><small id="resultType" style="color:var(--muted)">None</small></div><strong id="reward">0.000000000000 EUN</strong></div></div><div class="card log-card"><div class="eyebrow">JOURNEY LOG</div><div class="log" id="log"><div class="log-row"><span>000</span><b>Universe initialized</b><em>READY</em></div></div></div></section>
+<div class="system-title" id="systemTitle"><div class="eyebrow">ACTIVE SOLAR SYSTEM</div><h2 id="systemName">SYSTEM</h2></div><div class="help" id="help">DRAG TO ROTATE · SCROLL TO MOVE · CLICK A GLOWING STAR</div>
+<div class="flash" id="flash"><div><small id="flashSmall">HASH VALIDATED</small><h2 id="flashTitle">FALSE TARGET</h2><p id="flashText">Contribution +1</p></div></div>
+<div class="modal" id="decoder"><div class="modal-card"><div class="modal-head"><div><div class="eyebrow" id="decodeEyebrow">HASH DECODER</div><h2 id="decodeTitle">Validate Nonce</h2></div><button class="close" id="close" type="button">×</button></div><p class="note" id="note"></p><div class="stage" id="stage"></div><div class="status" id="status">Complete the decoder to validate this nonce.</div></div></div>
+<div class="modal" id="win"><div class="modal-card win"><div class="eyebrow">THE TARGET HAS BEEN FOUND</div><h2>Signal Discovered</h2><p>The network journey closed. Your reward was calculated from your accepted validations.</p><div class="reward" id="winReward">+20.00000000 EUN</div><p id="breakdown"></p><button class="primary" id="continue" type="button">Begin Next Journey</button></div></div>
 <script>
-(() => {
-  const canvas = document.getElementById('universe');
-  const ctx = canvas.getContext('2d', { alpha: false });
-  const DPR = Math.min(devicePixelRatio || 1, 2);
-  let width=0, height=0, stars=[], particles=[];
-  let yaw=0, pitch=0, zoom=760, targetYaw=0, targetPitch=0, targetZoom=760;
-  let dragging=false, lastX=0, lastY=0, moved=false, locked=false;
-  let journeyCount=0, signatures=0, balance=0, bestQuality=0;
-  let selected=null, zoomPhase=0, sessionStart=Date.now();
-  const palette=['#ffd98b','#8fc5ff','#ff8f72','#b8ff91','#f4f0e8'];
-
-  const $ = id => document.getElementById(id);
-  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-  const fmt=n=>n.toFixed(12);
-  const pad=n=>String(n).padStart(3,'0');
-
-  function resize(){
-    width=innerWidth; height=innerHeight;
-    canvas.width=width*DPR; canvas.height=height*DPR;
-    canvas.style.width=width+'px'; canvas.style.height=height+'px';
-    ctx.setTransform(DPR,0,0,DPR,0,0);
-    if(!stars.length) buildUniverse();
-  }
-
-  function buildUniverse(){
-    stars=[];
-    const count = width < 600 ? 190 : 330;
-    for(let i=0;i<count;i++){
-      const r=400+Math.random()*1800;
-      const theta=Math.random()*Math.PI*2;
-      const phi=Math.acos(2*Math.random()-1);
-      stars.push({
-        id:i+1,
-        x:r*Math.sin(phi)*Math.cos(theta),
-        y:r*Math.cos(phi)*.72,
-        z:r*Math.sin(phi)*Math.sin(theta),
-        size:.6+Math.random()*2.2,
-        glow:Math.random(),
-        color:palette[Math.floor(Math.random()*palette.length)],
-        pulse:Math.random()*Math.PI*2,
-        clickable:Math.random()>.74,
-        sx:0,sy:0,depth:0,visible:false
-      });
-    }
-    // Always place several attractive targets near the opening view.
-    for(let i=0;i<14;i++){
-      const angle=(i/14)*Math.PI*2;
-      stars.push({
-        id:stars.length+1,
-        x:Math.sin(angle)*520+(Math.random()-.5)*180,
-        y:(Math.random()-.5)*480,
-        z:900+Math.cos(angle)*380,
-        size:1.4+Math.random()*2.7,
-        glow:.8+Math.random()*.2,
-        color:palette[i%palette.length],
-        pulse:Math.random()*6.28, clickable:true,sx:0,sy:0,depth:0,visible:false
-      });
-    }
-  }
-
-  function rotatePoint(s){
-    const cy=Math.cos(yaw), sy=Math.sin(yaw), cp=Math.cos(pitch), sp=Math.sin(pitch);
-    let x=s.x*cy-s.z*sy, z=s.x*sy+s.z*cy;
-    let y=s.y*cp-z*sp; z=s.y*sp+z*cp;
-    z += zoom;
-    return {x,y,z};
-  }
-
-  function drawNebula(){
-    const g=ctx.createRadialGradient(width*.7,height*.35,30,width*.7,height*.35,width*.58);
-    g.addColorStop(0,'rgba(90,80,135,.10)'); g.addColorStop(.35,'rgba(28,65,100,.055)'); g.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=g; ctx.fillRect(0,0,width,height);
-    const g2=ctx.createRadialGradient(width*.2,height*.75,20,width*.2,height*.75,width*.42);
-    g2.addColorStop(0,'rgba(160,87,42,.07)'); g2.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=g2; ctx.fillRect(0,0,width,height);
-  }
-
-  function draw(){
-    yaw += (targetYaw-yaw)*.075; pitch += (targetPitch-pitch)*.075; zoom += (targetZoom-zoom)*.07;
-    ctx.fillStyle='#030508'; ctx.fillRect(0,0,width,height); drawNebula();
-    const projected=[];
-    for(const s of stars){
-      s.pulse+=.016;
-      const p=rotatePoint(s);
-      if(p.z<80){s.visible=false;continue}
-      const scale=620/p.z;
-      const sx=width/2+p.x*scale, sy=height/2+p.y*scale;
-      if(sx<-60||sx>width+60||sy<-60||sy>height+60){s.visible=false;continue}
-      s.sx=sx;s.sy=sy;s.depth=p.z;s.visible=true;
-      projected.push(s);
-    }
-    projected.sort((a,b)=>b.depth-a.depth);
-    for(const s of projected){
-      const scale=620/s.depth;
-      const pulse=1+Math.sin(s.pulse)*.18;
-      const r=clamp(s.size*scale*2.2,.45,7)*pulse;
-      if(s.clickable){
-        const gr=ctx.createRadialGradient(s.sx,s.sy,0,s.sx,s.sy,r*7);
-        gr.addColorStop(0,s.color); gr.addColorStop(.12,s.color); gr.addColorStop(.34,'rgba(216,166,74,.22)'); gr.addColorStop(1,'rgba(0,0,0,0)');
-        ctx.fillStyle=gr;ctx.beginPath();ctx.arc(s.sx,s.sy,r*7,0,Math.PI*2);ctx.fill();
-      }
-      ctx.fillStyle=s.color;ctx.globalAlpha=clamp(1-(s.depth-800)/3000,.24,1);
-      ctx.beginPath();ctx.arc(s.sx,s.sy,r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-      if(s.clickable && r>1.3){
-        ctx.strokeStyle='rgba(255,220,150,.18)';ctx.lineWidth=.6;ctx.beginPath();ctx.arc(s.sx,s.sy,r*3.1,0,Math.PI*2);ctx.stroke();
-      }
-    }
-    updateParticles();
-    requestAnimationFrame(draw);
-  }
-
-  function updateParticles(){
-    for(let i=particles.length-1;i>=0;i--){
-      const p=particles[i]; p.life-=.025; p.x+=p.vx; p.y+=p.vy; p.vx*=.985;p.vy*=.985;
-      ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
-      if(p.life<=0)particles.splice(i,1);
-    } ctx.globalAlpha=1;
-  }
-
-  function burst(x,y,color){
-    for(let i=0;i<55;i++){const a=Math.random()*6.28,sp=.5+Math.random()*5;particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:.5+Math.random()*2,life:.7+Math.random()*.5,color});}
-  }
-
-  function hitTest(x,y){
-    let hit=null, best=Infinity;
-    for(const s of stars){
-      if(!s.visible||!s.clickable)continue;
-      const d=Math.hypot(x-s.sx,y-s.sy);
-      const radius=clamp(s.size*(620/s.depth)*9,12,34);
-      if(d<radius && d<best){hit=s;best=d}
-    }
-    return hit;
-  }
-
-  async function sha256(text){
-    const data=new TextEncoder().encode(text);
-    const digest=await crypto.subtle.digest('SHA-256',data);
-    return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');
-  }
-
-  function calibrationOdds(){
-    // A calm beginning, then a gradually rising "tide" to make the prototype target arrive
-    // in a few minutes for most players without changing rewards in real time.
-    if(journeyCount<70)return 160;
-    if(journeyCount<120)return 110;
-    if(journeyCount<170)return 70;
-    if(journeyCount<220)return 38;
-    return 18;
-  }
-
-  function rewardFromHash(hash, isSignature){
-    if(isSignature) return {value:10, type:'SIGNATURE', label:'Signature Discovered'};
-    const leading = hash.match(/^0*/)[0].length;
-    const quality = 1 - parseInt(hash.slice(0,13),16)/0xFFFFFFFFFFFFF;
-    let value, type;
-    if(leading>=3 || quality>.9995){value=.02+quality*.03;type='EXCEPTIONAL DEPOSIT'}
-    else if(leading>=2 || quality>.995){value=.002+quality*.008;type='RICH DEPOSIT'}
-    else if(leading>=1 || quality>.97){value=.00008+quality*.00042;type='DEPOSIT'}
-    else if(quality>.72){value=.0000008+quality*.0000092;type='FLAKES'}
-    else {value=.000000001+quality*.00000022;type='DUST'}
-    return {value,type,label:type.replace(/\b\w/g,c=>c.toUpperCase())};
-  }
-
-  async function beginJourney(star){
-    if(locked)return; locked=true; selected=star; burst(star.sx,star.sy,star.color);
-    $('help').style.opacity='.15';
-    // Rotate selected star into the center and move forward through it.
-    const desiredYaw=Math.atan2(star.x,star.z);
-    const flat=Math.sqrt(star.x*star.x+star.z*star.z);
-    const desiredPitch=-Math.atan2(star.y,flat);
-    targetYaw+=desiredYaw*.78; targetPitch=clamp(targetPitch+desiredPitch*.78,-1.15,1.15);
-    targetZoom=220;
-    await new Promise(r=>setTimeout(r,850));
-
-    journeyCount++;
-    const nonce=crypto.getRandomValues(new Uint32Array(4)).join('-');
-    const input=`EUNVEIL|EXP1-P1|JOURNEY:${journeyCount}|STAR:${star.id}|${nonce}|${Date.now()}`;
-    const hash=await sha256(input);
-    const sample=parseInt(hash.slice(0,8),16);
-    const odds=calibrationOdds();
-    const target=Math.floor(0x100000000/odds);
-    const isSignature=sample<target;
-    const quality=1-sample/0xFFFFFFFF;
-    bestQuality=Math.max(bestQuality,quality);
-    const result=rewardFromHash(hash,isSignature);
-    balance+=result.value;
-    if(isSignature)signatures++;
-
-    $('hash').textContent=hash.toUpperCase();
-    $('reward').textContent='+'+fmt(result.value)+' EUN';
-    $('depositType').textContent=result.type;
-    $('rarity').textContent=`TOP ${(Math.max(.0001,(1-quality)*100)).toFixed(4)}% HASH`;
-    $('balance').textContent=fmt(balance)+' EUN';
-    $('journeys').textContent=journeyCount;
-    $('signatures').textContent=signatures;
-    $('bestScore').textContent=`TOP ${Math.max(.001,(1-bestQuality)*100).toFixed(3)}%`;
-    updateCalibration();
-    addLog(result.type,result.value);
-
-    $('flashTitle').textContent=result.label;
-    $('flashReward').textContent='+'+fmt(result.value)+' EUN';
-    $('flash').classList.add('show');
-    setTimeout(()=>$('flash').classList.remove('show'),760);
-
-    // Pass through the star and regenerate the next region of the universe.
-    targetZoom=-360;
-    await new Promise(r=>setTimeout(r,650));
-    reseedRegion();
-    targetZoom=760;
-    selected=null; locked=false; $('help').style.opacity='1';
-    if(isSignature){
-      $('signatureReward').textContent='+'+result.value.toFixed(8)+' EUN';
-      $('signatureModal').classList.add('open');
-    }
-  }
-
-  function reseedRegion(){
-    // Move every star into a new region, creating the feeling that each star opens deeper space.
-    for(const s of stars){
-      const r=420+Math.random()*1900, theta=Math.random()*6.28, phi=Math.acos(2*Math.random()-1);
-      s.x=r*Math.sin(phi)*Math.cos(theta);s.y=r*Math.cos(phi)*.72;s.z=r*Math.sin(phi)*Math.sin(theta);
-      s.clickable=Math.random()>.72;s.color=palette[Math.floor(Math.random()*palette.length)];
-    }
-    for(let i=0;i<12;i++){const s=stars[i];s.x=(Math.random()-.5)*950;s.y=(Math.random()-.5)*650;s.z=650+Math.random()*800;s.clickable=true;s.size=1.5+Math.random()*2.6}
-  }
-
-  function updateCalibration(){
-    const odds=calibrationOdds();
-    $('targetOdds').textContent=`≈ 1 / ${odds}`;
-    const pct=clamp(12+(journeyCount/240)*88,12,100);
-    $('tideFill').style.width=pct+'%';
-    const label=journeyCount<70?'CALM':journeyCount<120?'RISING':journeyCount<170?'ACTIVE':journeyCount<220?'HIGH':'SURGE';
-    $('tideLabel').textContent=label;
-  }
-
-  function addLog(type,value){
-    const row=document.createElement('div');row.className='log-row';
-    row.innerHTML=`<span>${pad(journeyCount)}</span><b>${type}</b><em>+${value<.000001?value.toExponential(2):value.toFixed(8)}</em>`;
-    $('log').prepend(row);
-    while($('log').children.length>12)$('log').lastChild.remove();
-  }
-
-  canvas.addEventListener('pointerdown',e=>{dragging=true;moved=false;lastX=e.clientX;lastY=e.clientY;canvas.classList.add('dragging');canvas.setPointerCapture(e.pointerId)});
-  canvas.addEventListener('pointermove',e=>{
-    if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;
-    targetYaw-=dx*.0042;targetPitch=clamp(targetPitch-dy*.0038,-1.25,1.25);lastX=e.clientX;lastY=e.clientY;
-  });
-  canvas.addEventListener('pointerup',e=>{
-    dragging=false;canvas.classList.remove('dragging');
-    if(!moved){const hit=hitTest(e.clientX,e.clientY);if(hit)beginJourney(hit)}
-  });
-  canvas.addEventListener('wheel',e=>{e.preventDefault();targetZoom=clamp(targetZoom+e.deltaY*.55,260,1450)},{passive:false});
-  canvas.addEventListener('dblclick',()=>{targetYaw=0;targetPitch=0;targetZoom=760});
-  $('continueBtn').addEventListener('click',()=>$('signatureModal').classList.remove('open'));
-
-  setInterval(()=>{
-    const s=Math.floor((Date.now()-sessionStart)/1000);
-    $('sessionTime').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
-  },1000);
-
-  addEventListener('resize',resize); resize(); updateCalibration(); draw();
+(()=>{
+const c=document.getElementById('universe'),x=c.getContext('2d'),$=id=>document.getElementById(id),clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),fmt=n=>n.toFixed(12);let W=0,H=0,D=Math.min(devicePixelRatio||1,2),stars=[],objects=[],particles=[],mode='universe',drag=false,moved=false,lx=0,ly=0,yaw=0,pitch=0,zoom=760,ty=0,tp=0,tz=760,locked=false,selectedStar=null,currentHash='',nonce=0,start=Date.now();
+const REWARD=20,ODDS=40,types=['star','planet','moon','satellite','station'],names={star:'Star',planet:'Planet',moon:'Moon',satellite:'Satellite',station:'Space Station'},colors={star:'#ffd98b',planet:'#79b7ff',moon:'#e5e1da',satellite:'#72e5a0',station:'#d9a64b'};
+let s=JSON.parse(localStorage.getItem('eunveil-core')||'{}'),balance=+s.balance||0,validations=+s.validations||0,signals=+s.signals||0,network=+s.network||0,jv=+s.jv||0,jn=+s.jn||0,logNo=+s.logNo||0;
+function save(){localStorage.setItem('eunveil-core',JSON.stringify({balance,validations,signals,network,jv,jn,logNo}))}function resize(){W=innerWidth;H=innerHeight;c.width=W*D;c.height=H*D;c.style.width=W+'px';c.style.height=H+'px';x.setTransform(D,0,0,D,0,0);if(!stars.length)buildUniverse()}
+function buildUniverse(){stars=[];let count=W<600?190:330;for(let i=0;i<count;i++){let r=400+Math.random()*1800,t=Math.random()*6.28,p=Math.acos(2*Math.random()-1);stars.push({id:i+1,x:r*Math.sin(p)*Math.cos(t),y:r*Math.cos(p)*.72,z:r*Math.sin(p)*Math.sin(t),size:.6+Math.random()*2.2,color:['#ffd98b','#8fc5ff','#ff8f72','#b8ff91','#f4f0e8'][i%5],pulse:Math.random()*6.28,click:Math.random()>.74})}for(let i=0;i<14;i++){let a=i/14*6.28;stars.push({id:stars.length+1,x:Math.sin(a)*520+(Math.random()-.5)*180,y:(Math.random()-.5)*480,z:900+Math.cos(a)*380,size:1.5+Math.random()*2.7,color:['#ffd98b','#8fc5ff','#ff8f72','#b8ff91','#f4f0e8'][i%5],pulse:Math.random()*6.28,click:true})}}
+function buildSystem(star){let a=[...types];while(a.length<10)a.push(types[Math.floor(Math.random()*5)]);for(let i=a.length-1;i;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}objects=a.map((type,i)=>({id:i+1,type,label:names[type],color:colors[type],angle:i/10*6.28+Math.random()*.25,ring:145+(i%5)*72+(i>4?30:0),size:type==='star'?26:type==='planet'?20:type==='moon'?13:type==='satellite'?12:18,pulse:Math.random()*6.28}));$('systemName').textContent='E-'+String(star.id).padStart(4,'0')}
+function rot(o){let cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch),xx=o.x*cy-o.z*sy,zz=o.x*sy+o.z*cy,yy=o.y*cp-zz*sp;zz=o.y*sp+zz*cp+zoom;return{xx,yy,zz}}
+function bg(){x.fillStyle='#030508';x.fillRect(0,0,W,H);let g=x.createRadialGradient(W*.7,H*.35,30,W*.7,H*.35,W*.58);g.addColorStop(0,'rgba(90,80,135,.10)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,W,H)}
+function drawUniverse(){let arr=[];for(let o of stars){o.pulse+=.016;let p=rot(o);if(p.zz<80)continue;let sc=620/p.zz,sx=W/2+p.xx*sc,sy=H/2+p.yy*sc;if(sx<-60||sx>W+60||sy<-60||sy>H+60)continue;Object.assign(o,{sx,sy,depth:p.zz});arr.push(o)}arr.sort((a,b)=>b.depth-a.depth);for(let o of arr){let r=clamp(o.size*(620/o.depth)*2.2,.45,7)*(1+Math.sin(o.pulse)*.18);if(o.click){let g=x.createRadialGradient(o.sx,o.sy,0,o.sx,o.sy,r*7);g.addColorStop(0,o.color);g.addColorStop(.2,o.color);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.globalAlpha=.5;x.beginPath();x.arc(o.sx,o.sy,r*7,0,6.28);x.fill();x.globalAlpha=1}x.fillStyle=o.color;x.beginPath();x.arc(o.sx,o.sy,r,0,6.28);x.fill()}}
+function drawObject(o){let r=o.size*(1+Math.sin(o.pulse)*.06);x.save();x.translate(o.sx,o.sy);x.strokeStyle=o.color;x.fillStyle=o.color;x.lineWidth=3;if(o.type==='star'){x.beginPath();x.arc(0,0,r,0,6.28);x.fill()}if(o.type==='planet'){x.beginPath();x.arc(0,0,r,0,6.28);x.fill();x.strokeStyle='rgba(255,255,255,.55)';x.beginPath();x.ellipse(0,0,r*1.6,r*.45,-.25,0,6.28);x.stroke()}if(o.type==='moon'){x.beginPath();x.arc(0,0,r,0,6.28);x.fill();x.fillStyle='rgba(0,0,0,.25)';x.beginPath();x.arc(-r*.3,-r*.15,r*.22,0,6.28);x.arc(r*.25,r*.18,r*.15,0,6.28);x.fill()}if(o.type==='satellite'){x.strokeRect(-r*.35,-r*.35,r*.7,r*.7);x.beginPath();x.moveTo(-r*1.4,0);x.lineTo(r*1.4,0);x.stroke()}if(o.type==='station'){x.strokeRect(-r*.65,-r*.32,r*1.3,r*.64);x.beginPath();x.arc(0,0,r*.34,0,6.28);x.stroke()}x.restore();x.fillStyle='rgba(245,239,229,.78)';x.font='10px Inter';x.textAlign='center';x.fillText(o.label.toUpperCase(),o.sx,o.sy+r+20)}
+function drawSystem(){let cx=W/2,cy=H/2+20,max=Math.min(W,H)*.4;x.strokeStyle='rgba(255,255,255,.1)';for(let i=1;i<=5;i++){x.beginPath();x.ellipse(cx,cy,max*i/5,max*i/5*.42,0,0,6.28);x.stroke()}for(let o of objects){o.pulse+=.018;let rr=o.ring/500*max;o.sx=cx+Math.cos(o.angle)*rr;o.sy=cy+Math.sin(o.angle)*rr*.42;drawObject(o)}}
+function draw(){yaw+=(ty-yaw)*.075;pitch+=(tp-pitch)*.075;zoom+=(tz-zoom)*.07;bg();mode==='universe'?drawUniverse():drawSystem();requestAnimationFrame(draw)}
+function starHit(px,py){let hit=null,b=1e9;for(let o of stars){if(!o.click||o.sx==null)continue;let d=Math.hypot(px-o.sx,py-o.sy),r=clamp(o.size*(620/o.depth)*9,12,34);if(d<r&&d<b){hit=o;b=d}}return hit}function objHit(px,py){let hit=null,b=1e9;for(let o of objects){let d=Math.hypot(px-o.sx,py-o.sy),r=Math.max(23,o.size*1.6);if(d<r&&d<b){hit=o;b=d}}return hit}
+async function sha(t){let d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return[...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+async function enter(star){if(locked)return;locked=true;selectedStar=star;$('help').style.opacity=.2;tz=220;await new Promise(r=>setTimeout(r,850));buildSystem(star);mode='system';yaw=pitch=ty=tp=0;zoom=tz=760;$('systemTitle').classList.add('show');$('help').textContent='CLICK ANY OBJECT TO OPEN ITS HASH DECODER';$('help').style.opacity=1;$('hash').textContent='Solar system entered. Select an object to validate the next nonce.';$('rarity').textContent='NETWORK JOURNEY ACTIVE';locked=false}
+async function openDecoder(o){if(locked)return;locked=true;nonce++;currentHash=await sha(`EUNVEIL|EXP1-P1|SYSTEM:${selectedStar.id}|${o.type}:${o.id}|NONCE:${nonce}`);$('decoder').classList.add('open');$('decodeEyebrow').textContent=o.label.toUpperCase()+' HASH DECODER';$('decodeTitle').textContent='Validate Nonce '+nonce;$('status').textContent='Complete the decoder to validate this nonce.';$('status').style.color='var(--muted)';render(o.type,currentHash)}
+function resetMsg(msg){$('status').textContent=msg;$('status').style.color='var(--red)';setTimeout(()=>{$('status').textContent='Complete the decoder to validate this nonce.';$('status').style.color='var(--muted)'},800)}function done(){$('status').textContent='Nonce validated. Checking target...';$('status').style.color='var(--green)';setTimeout(()=>{$('decoder').classList.remove('open');resolve(currentHash);locked=false},450)}
+function render(type,h){let st=$('stage');st.innerHTML='';if(type==='star'){ $('note').textContent='Click the four highlighted hash digits from left to right.';let pos=[...new Set([+('0x'+h.slice(0,2))%12,+('0x'+h.slice(2,4))%12,+('0x'+h.slice(4,6))%12,+('0x'+h.slice(6,8))%12])];while(pos.length<4)pos.push((pos[pos.length-1]+3)%12);pos.sort((a,b)=>a-b);let p=0,row=document.createElement('div');row.className='digit-row';for(let i=0;i<12;i++){let b=document.createElement('button');b.className='digit';b.textContent=h[i].toUpperCase();if(pos.includes(i))b.style.borderColor='var(--gold)';b.onclick=()=>{if(i!==pos[p]){p=0;[...row.children].forEach(q=>q.classList.remove('used'));resetMsg('Wrong order. Start again.');return}b.classList.add('used');if(++p===4)done()};row.appendChild(b)}st.appendChild(row)}
+if(type==='planet'){ $('note').textContent='Activate the four orbital markers from lowest digit to highest.';let vals=[0,1,2,3].map(i=>parseInt(h[i],16)),ans=[0,1,2,3].sort((a,b)=>vals[a]-vals[b]||a-b),p=0,w=document.createElement('div');w.className='orbit';w.innerHTML='<div class="ring"></div><div class="ring two"></div>';vals.forEach((v,i)=>{let b=document.createElement('button');b.className='node n'+i;b.textContent=v.toString(16).toUpperCase();b.onclick=()=>{if(i!==ans[p]){p=0;[...w.querySelectorAll('.node')].forEach(q=>q.classList.remove('used'));resetMsg('Orbit alignment failed.');return}b.classList.add('used');if(++p===4)done()};w.appendChild(b)});st.appendChild(w)}
+if(type==='moon'||type==='station'){let count=type==='moon'?4:5,ans=[];for(let i=0;i<count;i++){let v=parseInt(h.slice(i*2,i*2+2),16)%12;while(ans.includes(v))v=(v+1)%12;ans.push(v)}$('note').textContent=type==='moon'?'Click the glowing craters in the encoded order.':'Restore power by activating highlighted terminals in order.';let p=0,g=document.createElement('div');g.className='grid';for(let i=0;i<12;i++){let b=document.createElement('button');b.className=type==='moon'?'crater':'terminal';b.textContent=type==='moon'?i+1:h[12+i].toUpperCase();if(ans.includes(i))b.style.borderColor=type==='moon'?'rgba(255,224,160,.7)':'rgba(121,183,255,.7)';b.onclick=()=>{if(i!==ans[p]){p=0;[...g.children].forEach(q=>q.classList.remove('used'));resetMsg('Sequence rejected. Start again.');return}b.classList.add('used');if(++p===count)done()};g.appendChild(b)}st.appendChild(g)}
+if(type==='satellite'){let target=1000+(parseInt(h.slice(0,6),16)%8001);$('note').textContent='Tune the satellite to the exact encoded frequency.';let w=document.createElement('div');w.className='tuner';let read=document.createElement('div');read.className='freq';let range=document.createElement('input');range.type='range';range.min=1000;range.max=9000;range.step=1;range.value=clamp(target-500+Math.floor(Math.random()*1000),1000,9000);let b=document.createElement('button');b.className='primary';b.textContent='Lock Signal';let up=()=>read.textContent=range.value+' MHz';range.oninput=up;b.onclick=()=>+range.value===target?done():resetMsg(Math.abs(+range.value-target)<35?'Very close.':'Frequency does not match.');up();w.append(read,range,b);st.appendChild(w)}}
+function resolve(h){let sample=parseInt(h.slice(0,8),16),target=Math.floor(0x100000000/ODDS),truth=sample<target,quality=1-sample/0xffffffff;$('hash').textContent=h.toUpperCase();$('rarity').textContent='TOP '+Math.max(.0001,(1-quality)*100).toFixed(4)+'% HASH';if(truth){let den=Math.max(1,jn+1),num=jv+1,share=num/den,r=REWARD*share;balance+=r;signals++;$('resultType').textContent='TRUE TARGET — SIGNAL';$('reward').textContent='+'+fmt(r)+' EUN';flash('TRUE HASH VALIDATION','SIGNAL FOUND','Reward: '+r.toFixed(8)+' EUN');$('winReward').textContent='+'+r.toFixed(8)+' EUN';$('breakdown').textContent=`You contributed ${(share*100).toFixed(2)}% of this journey (${num} of ${den} accepted validations).`;log('SIGNAL FOUND','+'+r.toFixed(8));hud();save();setTimeout(()=>$('win').classList.add('open'),600)}else{validations++;network++;jv++;jn++;$('resultType').textContent='FALSE TARGET — ACCEPTED';$('reward').textContent='CONTRIBUTION +1';flash('HASH VALIDATED','FALSE TARGET','Contribution +1');log('FALSE VALIDATION','+1 SHARE');hud();save()}}
+function flash(a,b,d){$('flashSmall').textContent=a;$('flashTitle').textContent=b;$('flashText').textContent=d;$('flash').classList.add('show');setTimeout(()=>$('flash').classList.remove('show'),760)}function log(a,b){logNo++;let r=document.createElement('div');r.className='log-row';r.innerHTML=`<span>${String(logNo).padStart(3,'0')}</span><b>${a}</b><em>${b}</em>`;$('log').prepend(r);while($('log').children.length>12)$('log').lastChild.remove()}
+function hud(){let sh=jn?jv/jn:0;$('balance').textContent=fmt(balance)+' EUN';$('validations').textContent=validations;$('signals').textContent=signals;$('network').textContent=network;$('share').textContent=(sh*100).toFixed(2)+'%';$('journeyLabel').textContent=jv;$('fill').style.width=Math.min(100,jv/ODDS*100)+'%'}function resetJourney(){jv=jn=0;$('win').classList.remove('open');$('resultType').textContent='NEW JOURNEY ACTIVE';$('reward').textContent='0.000000000000 EUN';$('rarity').textContent='AWAITING NEXT VALIDATION';hud();save()}
+c.addEventListener('pointerdown',e=>{if(locked)return;drag=true;moved=false;lx=e.clientX;ly=e.clientY;c.setPointerCapture(e.pointerId)});c.addEventListener('pointermove',e=>{if(!drag||mode==='system')return;let dx=e.clientX-lx,dy=e.clientY-ly;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;ty-=dx*.0042;tp=clamp(tp-dy*.0038,-1.25,1.25);lx=e.clientX;ly=e.clientY});c.addEventListener('pointerup',e=>{drag=false;if(moved||locked)return;let h=mode==='universe'?starHit(e.clientX,e.clientY):objHit(e.clientX,e.clientY);if(h)(mode==='universe'?enter(h):openDecoder(h))});c.addEventListener('wheel',e=>{if(mode!=='universe')return;e.preventDefault();tz=clamp(tz+e.deltaY*.55,260,1450)},{passive:false});$('close').onclick=()=>{$('decoder').classList.remove('open');locked=false};$('continue').onclick=resetJourney;setInterval(()=>{let q=Math.floor((Date.now()-start)/1000);$('session').textContent=String(Math.floor(q/60)).padStart(2,'0')+':'+String(q%60).padStart(2,'0')},1000);addEventListener('resize',resize);resize();hud();draw();
 })();
 </script>
 </body>
