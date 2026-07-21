@@ -362,6 +362,8 @@
           irregularity:rand(.02,.1),
           maria:chance(.55),
           cracks:chance(.42),
+          orbitSpeed:rand(.000007,.000014)*(chance(.5)?1:-1),
+          motionOffset:rand(0,Math.PI*2),
           seed:Math.floor(Math.random()*100000)
         };
       }
@@ -397,6 +399,8 @@
           rotation:rand(-.22,.22),
           rotationSpeed:rand(.00012,.00024)*(chance(.5)?1:-1),
           rotationOffset:rand(0,Math.PI*2),
+          orbitSpeed:rand(.000004,.000009)*(chance(.5)?1:-1),
+          motionOffset:rand(0,Math.PI*2),
           seed:Math.floor(Math.random()*100000)
         };
       }
@@ -797,6 +801,7 @@
     ctx.globalAlpha=1;
   }
 
+  // Experience Pass 1 — Phases 4 & 5: staged object reveal with live ambient motion.
   function drawSystem(reveal=systemReveal){
     drawSystemBackdrop();
 
@@ -829,9 +834,11 @@
       }
 
       const rr=maxR*(o.ring/3);
-      const objectAngle=(o.type==='satellite'||o.type==='planet')
-        ?o.angle+performance.now()*(o.visual?.orbitSpeed||0)
-        :o.angle;
+      // Every object is already in motion while it fades into view. Nothing
+      // waits for the reveal to finish before its orbit begins.
+      const objectAngle=o.angle+
+        performance.now()*(o.visual?.orbitSpeed||0)+
+        (o.visual?.motionOffset||0)*.035;
       const p=projectSystemPoint(
         Math.cos(objectAngle)*rr,
         Math.sin(objectAngle)*rr,
@@ -844,10 +851,20 @@
     for(const item of projected){
       item.o.sx=item.sx;
       item.o.sy=item.sy;
-      item.o.renderScale=item.o.type==='star'?1.03:clamp(item.scale*.68,.48,.9);
-      item.o.arrivalAlpha=item.o.type==='star'
-        ?smoothstep(.01,.23,reveal)
-        :smoothstep(.34+item.o.ring*.07,.62+item.o.ring*.09,reveal);
+
+      // Phase 4: the destination star resolves first. The orbiting objects
+      // follow from the inner system outward, with a small per-object stagger.
+      const revealStart=item.o.type==='star'
+        ?.015
+        :.255+item.o.ring*.105+((item.o.id-1)%3)*.028;
+      const revealEnd=item.o.type==='star'
+        ?.19
+        :revealStart+.205;
+      const objectReveal=smoothstep(revealStart,revealEnd,reveal);
+
+      const baseScale=item.o.type==='star'?1.03:clamp(item.scale*.68,.48,.9);
+      item.o.renderScale=baseScale*lerp(item.o.type==='star'?.94:.965,1,objectReveal);
+      item.o.arrivalAlpha=objectReveal;
       drawObject(item.o);
     }
   }
