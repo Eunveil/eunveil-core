@@ -59,8 +59,25 @@
     .signature-card{width:min(680px,94vw);text-align:center;padding:48px 30px;border:1px solid var(--gold);border-radius:28px;background:radial-gradient(circle at top,rgba(216,166,74,.14),rgba(8,11,17,.96) 62%);box-shadow:0 0 90px rgba(216,166,74,.18)}
     .sig-emblem{width:116px;height:116px;margin:auto;border:1px solid var(--gold);border-radius:50%;display:grid;place-items:center;font-family:Georgia,serif;font-size:72px;color:var(--gold2)}
     .signature-card h2{font-family:Georgia,serif;font-size:clamp(42px,7vw,76px);font-weight:500;margin:24px 0 10px}.signature-card p{color:#b8b0a5;line-height:1.7}.sig-reward{font-size:32px;color:var(--gold2);margin:18px}
-    .log{max-height:125px;overflow:auto;margin-top:10px;padding-right:4px}.log-row{display:grid;grid-template-columns:42px 1fr auto;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:10px}.log-row span{color:var(--muted)}.log-row b{color:#d8d1c6}.log-row em{font-style:normal;color:var(--gold2)}
-    @media(max-width:850px){.right-panel{top:auto;bottom:72px;right:12px;width:calc(100vw - 24px)}.right-panel .log-card{display:none}.hud{top:82px;left:12px;width:270px}.card{padding:13px}.balance{font-size:23px}.help{bottom:18px}.topbar{padding:0 14px}.phase{display:none}.system-name{top:76px}}
+    .log{max-height:125px;overflow:auto;margin-top:10px;padding-right:4px}
+    .galaxy-return{
+      position:fixed;z-index:30;top:18px;left:176px;height:36px;padding:0 15px;
+      display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.12);
+      border-radius:999px;background:rgba(5,8,12,.72);backdrop-filter:blur(12px);
+      color:#c9c2b7;font-size:9px;font-weight:800;letter-spacing:.16em;
+      cursor:pointer;opacity:0;visibility:hidden;transform:translateY(-6px);
+      transition:opacity .3s ease,transform .3s ease,border-color .25s ease,color .25s ease;
+    }
+    .galaxy-return.show{opacity:1;visibility:visible;transform:translateY(0)}
+    .galaxy-return:hover{border-color:rgba(255,224,160,.55);color:var(--gold2)}
+    .galaxy-return:disabled{pointer-events:none;opacity:.35}
+    .galaxy-return .arrow{font-size:15px;line-height:1;font-weight:400;letter-spacing:0}
+    .hud,.right-panel,.help,.system-name{transition:opacity .38s ease,transform .38s ease}
+    body.system-traveling .hud,body.system-traveling .right-panel{opacity:.32}
+    body.system-traveling .help{opacity:0!important}
+    body.system-traveling .system-name{opacity:0}
+    body.system-arrived .hud,body.system-arrived .right-panel{opacity:1}.log-row{display:grid;grid-template-columns:42px 1fr auto;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:10px}.log-row span{color:var(--muted)}.log-row b{color:#d8d1c6}.log-row em{font-style:normal;color:var(--gold2)}
+    @media(max-width:850px){.galaxy-return{left:64px;top:18px;padding:0 12px}.galaxy-return .label{display:none}.right-panel{top:auto;bottom:72px;right:12px;width:calc(100vw - 24px)}.right-panel .log-card{display:none}.hud{top:82px;left:12px;width:270px}.card{padding:13px}.balance{font-size:23px}.help{bottom:18px}.topbar{padding:0 14px}.phase{display:none}.system-name{top:76px}}
     @media(max-width:560px){.hud{width:calc(100vw - 24px)}.metric-grid{grid-template-columns:repeat(4,1fr)}.metric{padding:8px}.metric strong{font-size:12px}.right-panel{bottom:62px}.hash-card{padding:12px}.discovery strong{font-size:17px}.help{font-size:8px;padding:9px 12px}.decoder-card{padding:22px 14px}.crater-grid,.terminal-grid{grid-template-columns:repeat(4,48px);gap:8px}.crater,.terminal{width:48px;height:48px}}
   </style>
 </head>
@@ -71,6 +88,9 @@
     <div class="brand"><span class="brand-e">E</span><span>EUNVEIL</span></div>
     <div class="phase">PROOF OF JOURNEY PROTOTYPE<strong>EXPEDITION I · PHASE I</strong></div>
   </header>
+  <button class="galaxy-return" id="galaxyReturnBtn" type="button" aria-label="Return to galaxy">
+    <span class="arrow">←</span><span class="label">RETURN TO GALAXY</span>
+  </button>
 
   <section class="hud">
     <div class="card">
@@ -155,19 +175,22 @@
   const DPR=Math.min(devicePixelRatio||1,2);
   const $=id=>document.getElementById(id);
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+  const smoothstep=(a,b,n)=>{const t=clamp((n-a)/(b-a),0,1);return t*t*(3-2*t)};
+  const easeInOutCubic=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
   const fmt=n=>n.toFixed(12);
   const pad=n=>String(n).padStart(3,'0');
 
   let width=0,height=0,stars=[],particles=[],systemObjects=[];
   let yaw=0,pitch=0,zoom=760,targetYaw=0,targetPitch=0,targetZoom=760;
   const DEFAULT_SYSTEM_YAW=0;
-  const DEFAULT_SYSTEM_PITCH=.43;
-  const DEFAULT_SYSTEM_ZOOM=1.2;
+  const DEFAULT_SYSTEM_PITCH=.58;
+  const DEFAULT_SYSTEM_ZOOM=1.5;
   let systemYaw=DEFAULT_SYSTEM_YAW,systemPitch=DEFAULT_SYSTEM_PITCH,systemZoom=DEFAULT_SYSTEM_ZOOM,
       targetSystemYaw=DEFAULT_SYSTEM_YAW,targetSystemPitch=DEFAULT_SYSTEM_PITCH,targetSystemZoom=DEFAULT_SYSTEM_ZOOM;
   let dragging=false,lastX=0,lastY=0,moved=false,locked=false,mode='universe';
   let selectedStar=null,currentObject=null,currentHash='',currentSegment='',segmentStart=0;
   let pendingSystemCompletion=false;
+  let systemTransition=null;
   let nonce=0,validations=0,signatures=0,contribution=0,balance=0,logCount=0;
   let sessionStart=Date.now();
   const palette=['#ffd98b','#8fc5ff','#ff8f72','#b8ff91','#f4f0e8'];
@@ -396,24 +419,145 @@
     yaw+=(targetYaw-yaw)*.075;pitch+=(targetPitch-pitch)*.075;zoom+=(targetZoom-zoom)*.07;
     systemYaw+=(targetSystemYaw-systemYaw)*.09;systemPitch+=(targetSystemPitch-systemPitch)*.09;systemZoom+=(targetSystemZoom-systemZoom)*.09;
     ctx.fillStyle='#030508';ctx.fillRect(0,0,width,height);drawNebula();
-    if(mode==='universe')drawUniverse();else drawSystem();
+    if(mode==='universe')drawUniverse();
+    else if(mode==='transition')drawSystemTransition();
+    else drawSystem();
     updateParticles();requestAnimationFrame(draw);
   }
 
-  function drawUniverse(){
+  function drawUniverse(warp=0,focusStar=null,fade=1){
     const projected=[];
     for(const s of stars){
       s.pulse+=.016;const p=rotatePoint(s);if(p.z<80){s.visible=false;continue}
-      const scale=620/p.z,sx=width/2+p.x*scale,sy=height/2+p.y*scale;
-      if(sx<-60||sx>width+60||sy<-60||sy>height+60){s.visible=false;continue}
-      s.sx=sx;s.sy=sy;s.depth=p.z;s.visible=true;projected.push(s);
+      const scale=620/p.z;
+      const baseX=width/2+p.x*scale;
+      const baseY=height/2+p.y*scale;
+      if(baseX<-120||baseX>width+120||baseY<-120||baseY>height+120){s.visible=false;continue}
+
+      let sx=baseX,sy=baseY;
+      if(warp>0&&focusStar&&s!==focusStar){
+        const dx=baseX-focusStar.sx,dy=baseY-focusStar.sy;
+        const distance=Math.hypot(dx,dy);
+        const edgeBoost=clamp(distance/Math.max(width,height),0,1);
+        const stretch=1+warp*(.35+edgeBoost*1.75);
+        sx=focusStar.sx+dx*stretch;
+        sy=focusStar.sy+dy*stretch;
+      }
+
+      s.sx=sx;s.sy=sy;s.depth=p.z;s.visible=true;
+      projected.push({s,baseX,baseY,sx,sy});
     }
-    projected.sort((a,b)=>b.depth-a.depth);
-    for(const s of projected){
-      const scale=620/s.depth,pulse=1+Math.sin(s.pulse)*.18,r=clamp(s.size*scale*2.2,.45,7)*pulse;
-      if(s.clickable){const gr=ctx.createRadialGradient(s.sx,s.sy,0,s.sx,s.sy,r*7);gr.addColorStop(0,s.color);gr.addColorStop(.12,s.color);gr.addColorStop(.34,'rgba(216,166,74,.22)');gr.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=gr;ctx.beginPath();ctx.arc(s.sx,s.sy,r*7,0,Math.PI*2);ctx.fill()}
-      ctx.fillStyle=s.color;ctx.globalAlpha=clamp(1-(s.depth-800)/3000,.24,1);ctx.beginPath();ctx.arc(s.sx,s.sy,r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+
+    projected.sort((a,b)=>b.s.depth-a.s.depth);
+    ctx.save();
+    ctx.globalAlpha=fade;
+
+    for(const item of projected){
+      const {s,baseX,baseY,sx,sy}=item;
+      const scale=620/s.depth,pulse=1+Math.sin(s.pulse)*.18;
+      let r=clamp(s.size*scale*2.2,.45,7)*pulse;
+
+      if(warp>0&&focusStar&&s!==focusStar){
+        const streakAlpha=warp*clamp(Math.hypot(sx-baseX,sy-baseY)/42,0,.85);
+        if(streakAlpha>.015){
+          ctx.save();
+          ctx.globalAlpha=fade*streakAlpha*.55;
+          ctx.strokeStyle=s.color;
+          ctx.lineWidth=Math.max(.35,r*.46);
+          ctx.shadowColor=s.color;
+          ctx.shadowBlur=4;
+          ctx.beginPath();
+          ctx.moveTo(baseX,baseY);
+          ctx.lineTo(sx,sy);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      if(s===focusStar&&warp>0)r*=1+warp*2.25;
+
+      if(s.clickable){
+        const glowRadius=r*(s===focusStar?10:7);
+        const gr=ctx.createRadialGradient(sx,sy,0,sx,sy,glowRadius);
+        gr.addColorStop(0,s.color);
+        gr.addColorStop(.12,s.color);
+        gr.addColorStop(.34,s===focusStar?`rgba(255,235,185,${.28+warp*.34})`:'rgba(216,166,74,.22)');
+        gr.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=gr;
+        ctx.beginPath();ctx.arc(sx,sy,glowRadius,0,Math.PI*2);ctx.fill();
+      }
+
+      ctx.fillStyle=s.color;
+      ctx.globalAlpha=fade*clamp(1-(s.depth-800)/3000,.24,1);
+      ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=fade;
     }
+
+    if(focusStar&&warp>0){
+      const bloomRadius=45+warp*Math.max(width,height)*.24;
+      const bloom=ctx.createRadialGradient(focusStar.sx,focusStar.sy,0,focusStar.sx,focusStar.sy,bloomRadius);
+      bloom.addColorStop(0,`rgba(255,245,218,${.34*warp})`);
+      bloom.addColorStop(.16,`rgba(255,211,120,${.18*warp})`);
+      bloom.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.globalAlpha=fade;
+      ctx.fillStyle=bloom;
+      ctx.beginPath();ctx.arc(focusStar.sx,focusStar.sy,bloomRadius,0,Math.PI*2);ctx.fill();
+    }
+
+    ctx.restore();
+    ctx.globalAlpha=1;
+  }
+
+  function drawSystemTransition(){
+    if(!systemTransition)return;
+    const elapsed=performance.now()-systemTransition.start;
+    const t=clamp(elapsed/systemTransition.duration,0,1);
+    const travel=easeInOutCubic(t);
+    const warp=smoothstep(.18,.78,t);
+    const galaxyFade=1-smoothstep(.58,.96,t);
+    const systemFade=smoothstep(.56,.96,t);
+
+    drawUniverse(warp,systemTransition.star,galaxyFade);
+
+    if(t>.48&&!systemTransition.systemBuilt){
+      buildSolarSystem();
+      systemTransition.systemBuilt=true;
+      systemYaw=targetSystemYaw=DEFAULT_SYSTEM_YAW;
+      systemPitch=targetSystemPitch=DEFAULT_SYSTEM_PITCH;
+      systemZoom=.92;
+      targetSystemZoom=DEFAULT_SYSTEM_ZOOM;
+    }
+
+    if(systemTransition.systemBuilt&&systemFade>0){
+      ctx.save();
+      ctx.globalAlpha=systemFade;
+      systemZoom=.78+(DEFAULT_SYSTEM_ZOOM-.78)*smoothstep(.54,1,t);
+      drawSystem();
+      ctx.restore();
+      ctx.globalAlpha=1;
+    }
+
+    if(t>=1)finishSystemTransition();
+  }
+
+  function finishSystemTransition(){
+    const star=systemTransition?.star||selectedStar;
+    systemTransition=null;
+    mode='system';
+    yaw=pitch=targetYaw=targetPitch=0;
+    zoom=targetZoom=760;
+    systemYaw=targetSystemYaw=DEFAULT_SYSTEM_YAW;
+    systemPitch=targetSystemPitch=DEFAULT_SYSTEM_PITCH;
+    systemZoom=targetSystemZoom=DEFAULT_SYSTEM_ZOOM;
+    document.body.classList.remove('system-traveling');
+    document.body.classList.add('system-arrived');
+    $('systemTitle').textContent=`E-${String(star.id).padStart(4,'0')}`;
+    $('systemName').classList.add('show');
+    $('galaxyReturnBtn').classList.add('show');
+    $('help').textContent='DRAG TO ROTATE · SCROLL TO ZOOM · CLICK AN UNDECODED OBJECT';
+    $('help').style.opacity='1';
+    $('hash').textContent='Solar system entered. Select an object to generate the next SHA-256 hash.';
+    locked=false;
   }
 
   function seededValue(seed,index,salt=0){
@@ -1221,15 +1365,31 @@
   async function sha256(text){const data=new TextEncoder().encode(text),digest=await crypto.subtle.digest('SHA-256',data);return[...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase()}
 
   async function enterSystem(star){
-    if(locked)return;locked=true;selectedStar=star;burst(star.sx,star.sy,star.color);$('help').style.opacity='.15';
-    const desiredYaw=Math.atan2(star.x,star.z),flat=Math.sqrt(star.x*star.x+star.z*star.z),desiredPitch=-Math.atan2(star.y,flat);
-    targetYaw+=desiredYaw*.78;targetPitch=clamp(targetPitch+desiredPitch*.78,-1.15,1.15);targetZoom=220;
-    await new Promise(r=>setTimeout(r,850));
-    buildSolarSystem();mode='system';yaw=pitch=targetYaw=targetPitch=0;zoom=targetZoom=760;
-    systemYaw=targetSystemYaw=DEFAULT_SYSTEM_YAW;
-    systemPitch=targetSystemPitch=DEFAULT_SYSTEM_PITCH;
-    systemZoom=targetSystemZoom=DEFAULT_SYSTEM_ZOOM;
-    $('systemTitle').textContent=`E-${String(star.id).padStart(4,'0')}`;$('systemName').classList.add('show');$('help').textContent='DRAG TO ROTATE · SCROLL TO ZOOM · CLICK AN UNDECODED OBJECT';$('help').style.opacity='1';$('hash').textContent='Solar system entered. Select an object to generate the next SHA-256 hash.';locked=false;
+    if(locked)return;
+    locked=true;
+    selectedStar=star;
+    burst(star.sx,star.sy,star.color);
+    $('help').style.opacity='0';
+
+    const desiredYaw=Math.atan2(star.x,star.z);
+    const flat=Math.sqrt(star.x*star.x+star.z*star.z);
+    const desiredPitch=-Math.atan2(star.y,flat);
+
+    targetYaw+=desiredYaw*.78;
+    targetPitch=clamp(targetPitch+desiredPitch*.78,-1.15,1.15);
+    targetZoom=185;
+
+    document.body.classList.remove('system-arrived');
+    document.body.classList.add('system-traveling');
+    $('galaxyReturnBtn').classList.remove('show');
+    mode='transition';
+    systemTransition={
+      active:true,
+      start:performance.now(),
+      duration:1500,
+      star,
+      systemBuilt:false
+    };
   }
 
   async function openDecoder(object){
@@ -1332,11 +1492,14 @@
   }
   function returnToGalaxy(){
     $('completionModal').classList.remove('open');
+    systemTransition=null;
+    document.body.classList.remove('system-traveling','system-arrived');
     mode='universe';
     systemObjects=[];
     selectedStar=null;
     currentObject=null;
     $('systemName').classList.remove('show');
+    $('galaxyReturnBtn').classList.remove('show');
     $('help').textContent='DRAG TO ROTATE · SCROLL TO MOVE · CLICK A GLOWING STAR';
     $('hash').textContent='Solar system complete. Select another star to continue.';
     targetYaw=0;targetPitch=0;targetZoom=760;
@@ -1351,6 +1514,7 @@
   $('closeDecoder').addEventListener('click',()=>{$('decoderModal').classList.remove('open');locked=false});
   $('continueBtn').addEventListener('click',()=>{$('signatureModal').classList.remove('open');contribution=0;$('contribution').textContent='0';$('contributionLabel').textContent='0';$('tideFill').style.width='0%';if(pendingSystemCompletion)showSystemCompletion()});
   $('returnGalaxyBtn').addEventListener('click',returnToGalaxy);
+  $('galaxyReturnBtn').addEventListener('click',returnToGalaxy);
   setInterval(()=>{const s=Math.floor((Date.now()-sessionStart)/1000);$('sessionTime').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},1000);
   addEventListener('resize',resize);resize();draw();
 })();
