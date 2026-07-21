@@ -177,6 +177,11 @@
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const smoothstep=(a,b,n)=>{const t=clamp((n-a)/(b-a),0,1);return t*t*(3-2*t)};
   const easeInOutCubic=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+  const easeInCubic=t=>t*t*t;
+  const easeOutCubic=t=>1-Math.pow(1-t,3);
+  const easeInOutQuint=t=>t<.5?16*t*t*t*t*t:1-Math.pow(-2*t+2,5)/2;
+  const easeOutBackSoft=t=>{const c1=.72,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2)};
+  const lerp=(a,b,t)=>a+(b-a)*t;
   const fmt=n=>n.toFixed(12);
   const pad=n=>String(n).padStart(3,'0');
 
@@ -191,6 +196,8 @@
   let selectedStar=null,currentObject=null,currentHash='',currentSegment='',segmentStart=0;
   let pendingSystemCompletion=false;
   let systemTransition=null;
+  let arrivalAnimation=null;
+  let systemReveal=1;
   let nonce=0,validations=0,signatures=0,contribution=0,balance=0,logCount=0;
   let sessionStart=Date.now();
   const palette=['#ffd98b','#8fc5ff','#ff8f72','#b8ff91','#f4f0e8'];
@@ -416,6 +423,7 @@
   }
 
   function draw(){
+    updateArrivalAnimation(performance.now());
     yaw+=(targetYaw-yaw)*.075;pitch+=(targetPitch-pitch)*.075;zoom+=(targetZoom-zoom)*.07;
     systemYaw+=(targetSystemYaw-systemYaw)*.09;systemPitch+=(targetSystemPitch-systemPitch)*.09;systemZoom+=(targetSystemZoom-systemZoom)*.09;
     ctx.fillStyle='#030508';ctx.fillRect(0,0,width,height);drawNebula();
@@ -508,33 +516,92 @@
     ctx.globalAlpha=1;
   }
 
+  function drawArrivalBloom(progress){
+    const pulse=Math.sin(clamp(progress,0,1)*Math.PI);
+    if(pulse<=.001)return;
+    const cx=width/2,cy=height/2+height*.055;
+    const radius=Math.max(width,height)*(.18+pulse*.34);
+    const bloom=ctx.createRadialGradient(cx,cy,0,cx,cy,radius);
+    bloom.addColorStop(0,`rgba(255,250,230,${pulse*.34})`);
+    bloom.addColorStop(.16,`rgba(255,218,145,${pulse*.18})`);
+    bloom.addColorStop(.52,`rgba(130,180,255,${pulse*.055})`);
+    bloom.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.save();
+    ctx.globalCompositeOperation='screen';
+    ctx.fillStyle=bloom;
+    ctx.fillRect(0,0,width,height);
+    ctx.restore();
+  }
+
+  function updateArrivalAnimation(now){
+    if(!arrivalAnimation)return;
+    const t=clamp((now-arrivalAnimation.start)/arrivalAnimation.duration,0,1);
+    const settle=easeOutCubic(t);
+    const drift=(1-settle)*(1-settle);
+
+    targetSystemYaw=DEFAULT_SYSTEM_YAW+arrivalAnimation.yawOffset*drift;
+    targetSystemPitch=DEFAULT_SYSTEM_PITCH+arrivalAnimation.pitchOffset*drift;
+    targetSystemZoom=DEFAULT_SYSTEM_ZOOM+arrivalAnimation.zoomOffset*drift;
+    systemReveal=lerp(arrivalAnimation.revealStart,1,smoothstep(0,.72,t));
+
+    if(t>=1){
+      arrivalAnimation=null;
+      systemReveal=1;
+      systemYaw=targetSystemYaw=DEFAULT_SYSTEM_YAW;
+      systemPitch=targetSystemPitch=DEFAULT_SYSTEM_PITCH;
+      systemZoom=targetSystemZoom=DEFAULT_SYSTEM_ZOOM;
+      locked=false;
+    }
+  }
+
   function drawSystemTransition(){
     if(!systemTransition)return;
     const elapsed=performance.now()-systemTransition.start;
     const t=clamp(elapsed/systemTransition.duration,0,1);
-    const travel=easeInOutCubic(t);
-    const warp=smoothstep(.18,.78,t);
-    const galaxyFade=1-smoothstep(.58,.96,t);
-    const systemFade=smoothstep(.56,.96,t);
+
+    // Hold the target briefly, accelerate, then brake into the destination.
+    const steeringT=easeInOutQuint(clamp((t-.055)/.62,0,1));
+    targetYaw=lerp(systemTransition.fromYaw,systemTransition.toYaw,steeringT);
+    targetPitch=lerp(systemTransition.fromPitch,systemTransition.toPitch,steeringT);
+    const approachT=easeInOutQuint(clamp((t-.07)/.69,0,1));
+    const brakeT=easeOutCubic(clamp((t-.68)/.22,0,1));
+    targetZoom=lerp(systemTransition.fromZoom,205,approachT)-40*brakeT;
+
+    const warpBuild=smoothstep(.18,.67,t);
+    const warpBrake=1-.38*smoothstep(.70,.98,t);
+    const warp=warpBuild*warpBrake;
+    const galaxyFade=1-smoothstep(.60,.94,t);
+    const systemFade=smoothstep(.57,.94,t);
 
     drawUniverse(warp,systemTransition.star,galaxyFade);
 
-    if(t>.48&&!systemTransition.systemBuilt){
+    if(t>.49&&!systemTransition.systemBuilt){
       buildSolarSystem();
       systemTransition.systemBuilt=true;
-      systemYaw=targetSystemYaw=DEFAULT_SYSTEM_YAW;
-      systemPitch=targetSystemPitch=DEFAULT_SYSTEM_PITCH;
-      systemZoom=.92;
-      targetSystemZoom=DEFAULT_SYSTEM_ZOOM;
+      systemYaw=targetSystemYaw=DEFAULT_SYSTEM_YAW-.042;
+      systemPitch=targetSystemPitch=DEFAULT_SYSTEM_PITCH-.065;
+      systemZoom=targetSystemZoom=.86;
+      systemReveal=0;
     }
 
     if(systemTransition.systemBuilt&&systemFade>0){
+      const arrivalT=clamp((t-.52)/.48,0,1);
+      const settle=easeOutBackSoft(arrivalT);
+      systemReveal=smoothstep(.04,.92,arrivalT);
+
+      // The camera passes its resting point slightly before the final settle.
+      systemYaw=targetSystemYaw=lerp(DEFAULT_SYSTEM_YAW-.042,DEFAULT_SYSTEM_YAW+.018,settle);
+      systemPitch=targetSystemPitch=lerp(DEFAULT_SYSTEM_PITCH-.065,DEFAULT_SYSTEM_PITCH-.012,settle);
+      systemZoom=targetSystemZoom=lerp(.86,DEFAULT_SYSTEM_ZOOM+.035,settle);
+
       ctx.save();
       ctx.globalAlpha=systemFade;
-      systemZoom=.78+(DEFAULT_SYSTEM_ZOOM-.78)*smoothstep(.54,1,t);
-      drawSystem();
+      drawSystem(systemReveal);
       ctx.restore();
       ctx.globalAlpha=1;
+
+      // A quick, restrained bloom marks the instant the system resolves.
+      drawArrivalBloom(clamp((t-.67)/.20,0,1));
     }
 
     if(t>=1)finishSystemTransition();
@@ -546,9 +613,17 @@
     mode='system';
     yaw=pitch=targetYaw=targetPitch=0;
     zoom=targetZoom=760;
-    systemYaw=targetSystemYaw=DEFAULT_SYSTEM_YAW;
-    systemPitch=targetSystemPitch=DEFAULT_SYSTEM_PITCH;
-    systemZoom=targetSystemZoom=DEFAULT_SYSTEM_ZOOM;
+
+    // Preserve a little forward momentum, then settle invisibly into the approved view.
+    systemYaw=targetSystemYaw=DEFAULT_SYSTEM_YAW+.018;
+    systemPitch=targetSystemPitch=DEFAULT_SYSTEM_PITCH-.012;
+    systemZoom=targetSystemZoom=DEFAULT_SYSTEM_ZOOM+.035;
+    arrivalAnimation={
+      start:performance.now(),duration:680,
+      yawOffset:.018,pitchOffset:-.012,zoomOffset:.035,
+      revealStart:Math.max(.82,systemReveal)
+    };
+
     document.body.classList.remove('system-traveling');
     document.body.classList.add('system-arrived');
     $('systemTitle').textContent=`E-${String(star.id).padStart(4,'0')}`;
@@ -557,7 +632,6 @@
     $('help').textContent='DRAG TO ROTATE · SCROLL TO ZOOM · CLICK AN UNDECODED OBJECT';
     $('help').style.opacity='1';
     $('hash').textContent='Solar system entered. Select an object to generate the next SHA-256 hash.';
-    locked=false;
   }
 
   function seededValue(seed,index,salt=0){
@@ -633,9 +707,9 @@
     ctx.globalAlpha=1;
   }
 
-  function drawSystemGrid(cx,cy,maxR,cosY,sinY,cosP,sinP){
+  function drawSystemGrid(cx,cy,maxR,cosY,sinY,cosP,sinP,reveal=1){
     ctx.save();
-    ctx.globalAlpha=.055;
+    ctx.globalAlpha=.055*reveal;
     ctx.strokeStyle='rgba(96,150,190,.48)';
     ctx.lineWidth=.55;
 
@@ -697,7 +771,7 @@
   ctx.restore();
 }
 
-  function drawAsteroidBelt(cx,cy,maxR,cosY,sinY,cosP,sinP){
+  function drawAsteroidBelt(cx,cy,maxR,cosY,sinY,cosP,sinP,reveal=1){
     const seed=(selectedStar?.id||1)*773;
     const inner=maxR*.76;
     const outer=maxR*.93;
@@ -714,7 +788,7 @@
       );
       const size=.3+seededValue(seed,i,4)*1.35*p.scale;
       const shade=90+Math.floor(seededValue(seed,i,5)*80);
-      ctx.globalAlpha=clamp(.18+p.scale*.16,.16,.42);
+      ctx.globalAlpha=clamp(.18+p.scale*.16,.16,.42)*reveal;
       ctx.fillStyle=`rgb(${shade},${shade},${shade+4})`;
       ctx.beginPath();
       ctx.arc(p.x,p.y,size,0,Math.PI*2);
@@ -723,7 +797,7 @@
     ctx.globalAlpha=1;
   }
 
-  function drawSystem(){
+  function drawSystem(reveal=systemReveal){
     drawSystemBackdrop();
 
     const cx=width/2;
@@ -735,13 +809,16 @@
     const cosP=Math.cos(viewPitch);
     const sinP=Math.sin(viewPitch);
 
-    drawSystemGrid(cx,cy,maxR,cosY,sinY,cosP,sinP);
+    const gridReveal=smoothstep(.08,.34,reveal);
+    drawSystemGrid(cx,cy,maxR,cosY,sinY,cosP,sinP,gridReveal);
 
     for(let i=1;i<=3;i++){
-      drawSystemOrbit(maxR*(i/3),cx,cy,cosY,sinY,cosP,sinP,.16+i*.018);
+      const orbitReveal=smoothstep(.12+i*.10,.34+i*.12,reveal);
+      drawSystemOrbit(maxR*(i/3),cx,cy,cosY,sinY,cosP,sinP,(.16+i*.018)*orbitReveal);
     }
 
-    drawAsteroidBelt(cx,cy,maxR,cosY,sinY,cosP,sinP);
+    const beltReveal=smoothstep(.48,.78,reveal);
+    drawAsteroidBelt(cx,cy,maxR,cosY,sinY,cosP,sinP,beltReveal);
 
     const projected=systemObjects.map(o=>{
       o.pulse+=.018;
@@ -768,13 +845,16 @@
       item.o.sx=item.sx;
       item.o.sy=item.sy;
       item.o.renderScale=item.o.type==='star'?1.03:clamp(item.scale*.68,.48,.9);
+      item.o.arrivalAlpha=item.o.type==='star'
+        ?smoothstep(.01,.23,reveal)
+        :smoothstep(.34+item.o.ring*.07,.62+item.o.ring*.09,reveal);
       drawObject(item.o);
     }
   }
 
   function drawObject(o){
     const r=o.size*(o.renderScale||1)*(1+Math.sin(o.pulse)*.018);
-    const alpha=o.decoded?.32:1;
+    const alpha=(o.decoded?.32:1)*(o.arrivalAlpha??1);
     const systemCenterX=width/2;
     const systemCenterY=height/2+height*.055;
     const toStarX=systemCenterX-o.sx;
@@ -1375,20 +1455,23 @@
     const flat=Math.sqrt(star.x*star.x+star.z*star.z);
     const desiredPitch=-Math.atan2(star.y,flat);
 
-    targetYaw+=desiredYaw*.78;
-    targetPitch=clamp(targetPitch+desiredPitch*.78,-1.15,1.15);
-    targetZoom=185;
-
     document.body.classList.remove('system-arrived');
     document.body.classList.add('system-traveling');
     $('galaxyReturnBtn').classList.remove('show');
     mode='transition';
+    arrivalAnimation=null;
+    systemReveal=0;
     systemTransition={
       active:true,
       start:performance.now(),
-      duration:1500,
+      duration:1750,
       star,
-      systemBuilt:false
+      systemBuilt:false,
+      fromYaw:targetYaw,
+      fromPitch:targetPitch,
+      fromZoom:targetZoom,
+      toYaw:targetYaw+desiredYaw*.78,
+      toPitch:clamp(targetPitch+desiredPitch*.78,-1.15,1.15)
     };
   }
 
@@ -1493,6 +1576,8 @@
   function returnToGalaxy(){
     $('completionModal').classList.remove('open');
     systemTransition=null;
+    arrivalAnimation=null;
+    systemReveal=1;
     document.body.classList.remove('system-traveling','system-arrived');
     mode='universe';
     systemObjects=[];
@@ -1509,7 +1594,7 @@
   canvas.addEventListener('pointerdown',e=>{if(locked)return;dragging=true;moved=false;lastX=e.clientX;lastY=e.clientY;canvas.classList.add('dragging');canvas.setPointerCapture(e.pointerId)});
   canvas.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;if(mode==='universe'){targetYaw-=dx*.0042;targetPitch=clamp(targetPitch-dy*.0038,-1.25,1.25)}else{targetSystemYaw-=dx*.006;targetSystemPitch=clamp(targetSystemPitch-dy*.004,-.9,.9)}lastX=e.clientX;lastY=e.clientY});
   canvas.addEventListener('pointerup',e=>{dragging=false;canvas.classList.remove('dragging');if(moved||locked)return;if(mode==='universe'){const hit=hitStar(e.clientX,e.clientY);if(hit)enterSystem(hit)}else{const hit=hitObject(e.clientX,e.clientY);if(hit)openDecoder(hit)}});
-  canvas.addEventListener('wheel',e=>{e.preventDefault();if(mode==='universe')targetZoom=clamp(targetZoom+e.deltaY*.55,260,1450);else targetSystemZoom=clamp(targetSystemZoom-e.deltaY*.001,.62,1.45)},{passive:false});
+  canvas.addEventListener('wheel',e=>{e.preventDefault();if(mode==='universe')targetZoom=clamp(targetZoom+e.deltaY*.55,260,1450);else targetSystemZoom=clamp(targetSystemZoom-e.deltaY*.001,.62,1.75)},{passive:false});
   canvas.addEventListener('dblclick',()=>{if(mode==='universe'){targetYaw=0;targetPitch=0;targetZoom=760}else{targetSystemYaw=DEFAULT_SYSTEM_YAW;targetSystemPitch=DEFAULT_SYSTEM_PITCH;targetSystemZoom=DEFAULT_SYSTEM_ZOOM}});
   $('closeDecoder').addEventListener('click',()=>{$('decoderModal').classList.remove('open');locked=false});
   $('continueBtn').addEventListener('click',()=>{$('signatureModal').classList.remove('open');contribution=0;$('contribution').textContent='0';$('contributionLabel').textContent='0';$('tideFill').style.width='0%';if(pendingSystemCompletion)showSystemCompletion()});
