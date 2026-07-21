@@ -160,7 +160,11 @@
 
   let width=0,height=0,stars=[],particles=[],systemObjects=[];
   let yaw=0,pitch=0,zoom=760,targetYaw=0,targetPitch=0,targetZoom=760;
-  let systemYaw=0,systemPitch=0,systemZoom=1,targetSystemYaw=0,targetSystemPitch=0,targetSystemZoom=1;
+  const DEFAULT_SYSTEM_YAW=0;
+  const DEFAULT_SYSTEM_PITCH=.43;
+  const DEFAULT_SYSTEM_ZOOM=1.2;
+  let systemYaw=DEFAULT_SYSTEM_YAW,systemPitch=DEFAULT_SYSTEM_PITCH,systemZoom=DEFAULT_SYSTEM_ZOOM,
+      targetSystemYaw=DEFAULT_SYSTEM_YAW,targetSystemPitch=DEFAULT_SYSTEM_PITCH,targetSystemZoom=DEFAULT_SYSTEM_ZOOM;
   let dragging=false,lastX=0,lastY=0,moved=false,locked=false,mode='universe';
   let selectedStar=null,currentObject=null,currentHash='',currentSegment='',segmentStart=0;
   let pendingSystemCompletion=false;
@@ -310,6 +314,11 @@
           storms:chance(world.kind==='gas'?.55:.18),
           iceCaps:chance(world.kind==='frozen'?.9:.25),
           lavaVeins:chance(world.kind==='volcanic'?.95:.04),
+          orbitSpeed:rand(.000018,.00003)*(chance(.5)?1:-1),
+          textureSpeed:rand(.000018,.000032)*(chance(.5)?1:-1),
+          cloudSpeed:rand(.000027,.000045)*(chance(.5)?1:-1),
+          stormSpeed:rand(.00012,.00022)*(chance(.5)?1:-1),
+          motionOffset:rand(0,Math.PI*2),
           seed:Math.floor(Math.random()*100000)
         };
       }
@@ -569,7 +578,7 @@
       }
 
       const rr=maxR*(o.ring/3);
-      const objectAngle=o.type==='satellite'
+      const objectAngle=(o.type==='satellite'||o.type==='planet')
         ?o.angle+performance.now()*(o.visual?.orbitSpeed||0)
         :o.angle;
       const p=projectSystemPoint(
@@ -640,6 +649,19 @@
     }
 
     if(o.type==='planet'){
+      const planetNow=performance.now();
+      const texturePhase=(v.motionOffset||0)+planetNow*(v.textureSpeed||.000024);
+      const cloudPhase=(v.motionOffset||0)+planetNow*(v.cloudSpeed||.000035);
+      const textureShift=(texturePhase%(Math.PI*2))/(Math.PI*2)*r*2;
+      const cloudShift=(cloudPhase%(Math.PI*2))/(Math.PI*2)*r*2;
+      const wrapSurfaceX=x=>((x+r+textureShift)%(r*2)+r*2)%(r*2)-r;
+      const wrapCloudX=x=>((x+r+cloudShift)%(r*2)+r*2)%(r*2)-r;
+      const drawWrapped=(x,drawFeature)=>{
+        drawFeature(x);
+        drawFeature(x-r*2);
+        drawFeature(x+r*2);
+      };
+
       ctx.save();
       ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.clip();
 
@@ -659,6 +681,16 @@
           ctx.beginPath();
           ctx.ellipse(0,offset,r*1.15,r*(.055+seeded(i+9,2)*.035),.03,0,Math.PI*2);
           ctx.stroke();
+
+          const streakX=wrapSurfaceX((seeded(i+22,6)-.5)*r*1.45);
+          ctx.globalAlpha=.08;
+          ctx.lineWidth=r*.025;
+          drawWrapped(streakX,wrappedX=>{
+            ctx.beginPath();
+            ctx.ellipse(wrappedX,offset,r*(.13+seeded(i+30,7)*.16),r*.025,.03,0,Math.PI*2);
+            ctx.stroke();
+          });
+          ctx.globalAlpha=.13;
         }
       }
 
@@ -667,11 +699,14 @@
         ctx.fillStyle=v.accent||'#d9d0a6';
         const count=3+Math.floor(seeded(1,8)*4);
         for(let i=0;i<count;i++){
-          const x=(seeded(i,9)-.5)*r*1.3;
+          const baseX=(seeded(i,9)-.5)*r*1.3;
+          const x=wrapSurfaceX(baseX);
           const y=(seeded(i,10)-.5)*r*1.15;
           const rx=r*(.12+seeded(i,11)*.24);
           const ry=r*(.06+seeded(i,12)*.14);
-          ctx.beginPath();ctx.ellipse(x,y,rx,ry,seeded(i,13)*1.2-.6,0,Math.PI*2);ctx.fill();
+          drawWrapped(x,wrappedX=>{
+            ctx.beginPath();ctx.ellipse(wrappedX,y,rx,ry,seeded(i,13)*1.2-.6,0,Math.PI*2);ctx.fill();
+          });
         }
       }
 
@@ -682,16 +717,22 @@
         const count=v.cloudCount||5;
         for(let i=0;i<count;i++){
           const y=(seeded(i,15)-.5)*r*1.35;
-          ctx.beginPath();ctx.ellipse((seeded(i,16)-.5)*r*.25,y,r*(.42+seeded(i,17)*.38),r*.045,seeded(i,18)*.22-.11,0,Math.PI*2);ctx.stroke();
+          const x=wrapCloudX((seeded(i,16)-.5)*r*.25);
+          drawWrapped(x,wrappedX=>{
+            ctx.beginPath();ctx.ellipse(wrappedX,y,r*(.42+seeded(i,17)*.38),r*.045,seeded(i,18)*.22-.11,0,Math.PI*2);ctx.stroke();
+          });
         }
       }
 
       if(v.storms){
         ctx.globalAlpha=.24;
         ctx.fillStyle=v.highlight||'#f4d6aa';
-        const x=(seeded(2,20)-.5)*r*.8;
+        const x=wrapCloudX((seeded(2,20)-.5)*r*.8);
         const y=(seeded(3,21)-.5)*r*.8;
-        ctx.beginPath();ctx.ellipse(x,y,r*.18,r*.09,-.25,0,Math.PI*2);ctx.fill();
+        const stormRotation=-.25+planetNow*(v.stormSpeed||.00016);
+        drawWrapped(x,wrappedX=>{
+          ctx.beginPath();ctx.ellipse(wrappedX,y,r*.18,r*.09,stormRotation,0,Math.PI*2);ctx.fill();
+        });
       }
 
       if(v.iceCaps){
@@ -971,7 +1012,10 @@
     const desiredYaw=Math.atan2(star.x,star.z),flat=Math.sqrt(star.x*star.x+star.z*star.z),desiredPitch=-Math.atan2(star.y,flat);
     targetYaw+=desiredYaw*.78;targetPitch=clamp(targetPitch+desiredPitch*.78,-1.15,1.15);targetZoom=220;
     await new Promise(r=>setTimeout(r,850));
-    buildSolarSystem();mode='system';yaw=pitch=targetYaw=targetPitch=0;zoom=targetZoom=760;systemYaw=targetSystemYaw=0;systemPitch=targetSystemPitch=0;systemZoom=targetSystemZoom=1;
+    buildSolarSystem();mode='system';yaw=pitch=targetYaw=targetPitch=0;zoom=targetZoom=760;
+    systemYaw=targetSystemYaw=DEFAULT_SYSTEM_YAW;
+    systemPitch=targetSystemPitch=DEFAULT_SYSTEM_PITCH;
+    systemZoom=targetSystemZoom=DEFAULT_SYSTEM_ZOOM;
     $('systemTitle').textContent=`E-${String(star.id).padStart(4,'0')}`;$('systemName').classList.add('show');$('help').textContent='DRAG TO ROTATE · SCROLL TO ZOOM · CLICK AN UNDECODED OBJECT';$('help').style.opacity='1';$('hash').textContent='Solar system entered. Select an object to generate the next SHA-256 hash.';locked=false;
   }
 
@@ -1090,7 +1134,7 @@
   canvas.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;if(mode==='universe'){targetYaw-=dx*.0042;targetPitch=clamp(targetPitch-dy*.0038,-1.25,1.25)}else{targetSystemYaw-=dx*.006;targetSystemPitch=clamp(targetSystemPitch-dy*.004,-.9,.9)}lastX=e.clientX;lastY=e.clientY});
   canvas.addEventListener('pointerup',e=>{dragging=false;canvas.classList.remove('dragging');if(moved||locked)return;if(mode==='universe'){const hit=hitStar(e.clientX,e.clientY);if(hit)enterSystem(hit)}else{const hit=hitObject(e.clientX,e.clientY);if(hit)openDecoder(hit)}});
   canvas.addEventListener('wheel',e=>{e.preventDefault();if(mode==='universe')targetZoom=clamp(targetZoom+e.deltaY*.55,260,1450);else targetSystemZoom=clamp(targetSystemZoom-e.deltaY*.001,.62,1.45)},{passive:false});
-  canvas.addEventListener('dblclick',()=>{if(mode==='universe'){targetYaw=0;targetPitch=0;targetZoom=760}else{targetSystemYaw=0;targetSystemPitch=0;targetSystemZoom=1}});
+  canvas.addEventListener('dblclick',()=>{if(mode==='universe'){targetYaw=0;targetPitch=0;targetZoom=760}else{targetSystemYaw=DEFAULT_SYSTEM_YAW;targetSystemPitch=DEFAULT_SYSTEM_PITCH;targetSystemZoom=DEFAULT_SYSTEM_ZOOM}});
   $('closeDecoder').addEventListener('click',()=>{$('decoderModal').classList.remove('open');locked=false});
   $('continueBtn').addEventListener('click',()=>{$('signatureModal').classList.remove('open');contribution=0;$('contribution').textContent='0';$('contributionLabel').textContent='0';$('tideFill').style.width='0%';if(pendingSystemCompletion)showSystemCompletion()});
   $('returnGalaxyBtn').addEventListener('click',returnToGalaxy);
