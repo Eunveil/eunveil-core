@@ -60,7 +60,7 @@
     .sig-emblem{width:116px;height:116px;margin:auto;border:1px solid var(--gold);border-radius:50%;display:grid;place-items:center;font-family:Georgia,serif;font-size:72px;color:var(--gold2)}
     .signature-card h2{font-family:Georgia,serif;font-size:clamp(42px,7vw,76px);font-weight:500;margin:24px 0 10px}.signature-card p{color:#b8b0a5;line-height:1.7}.sig-reward{font-size:32px;color:var(--gold2);margin:18px}
     .log{max-height:125px;overflow:auto;margin-top:10px;padding-right:4px}
-    .galaxy-return,.system-return{
+    .galaxy-return{
       position:fixed;z-index:30;top:18px;left:176px;height:36px;padding:0 15px;
       display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.12);
       border-radius:999px;background:rgba(5,8,12,.72);backdrop-filter:blur(12px);
@@ -68,18 +68,16 @@
       cursor:pointer;opacity:0;visibility:hidden;transform:translateY(-6px);
       transition:opacity .3s ease,transform .3s ease,border-color .25s ease,color .25s ease;
     }
-    .galaxy-return.show,.system-return.show{opacity:1;visibility:visible;transform:translateY(0)}
-    .galaxy-return:hover,.system-return:hover{border-color:rgba(255,224,160,.55);color:var(--gold2)}
-    .galaxy-return:disabled,.system-return:disabled{pointer-events:none;opacity:.35}
-    .galaxy-return .arrow,.system-return .arrow{font-size:15px;line-height:1;font-weight:400;letter-spacing:0}
-    .system-return{left:176px}
-    .system-return{position:fixed;z-index:31;top:18px;height:36px;padding:0 15px;display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(5,8,12,.72);backdrop-filter:blur(12px);color:#c9c2b7;font-size:9px;font-weight:800;letter-spacing:.16em;cursor:pointer;opacity:0;visibility:hidden;transform:translateY(-6px);transition:opacity .3s ease,transform .3s ease,border-color .25s ease,color .25s ease}
+    .galaxy-return.show{opacity:1;visibility:visible;transform:translateY(0)}
+    .galaxy-return:hover{border-color:rgba(255,224,160,.55);color:var(--gold2)}
+    .galaxy-return:disabled{pointer-events:none;opacity:.35}
+    .galaxy-return .arrow{font-size:15px;line-height:1;font-weight:400;letter-spacing:0}
     .hud,.right-panel,.help,.system-name{transition:opacity .38s ease,transform .38s ease}
     body.system-traveling .hud,body.system-traveling .right-panel{opacity:.32}
     body.system-traveling .help{opacity:0!important}
     body.system-traveling .system-name{opacity:0}
     body.system-arrived .hud,body.system-arrived .right-panel{opacity:1}.log-row{display:grid;grid-template-columns:42px 1fr auto;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:10px}.log-row span{color:var(--muted)}.log-row b{color:#d8d1c6}.log-row em{font-style:normal;color:var(--gold2)}
-    @media(max-width:850px){.galaxy-return,.system-return{left:64px;top:18px;padding:0 12px}.galaxy-return .label{display:none}.right-panel{top:auto;bottom:72px;right:12px;width:calc(100vw - 24px)}.right-panel .log-card{display:none}.hud{top:82px;left:12px;width:270px}.card{padding:13px}.balance{font-size:23px}.help{bottom:18px}.topbar{padding:0 14px}.phase{display:none}.system-name{top:76px}}
+    @media(max-width:850px){.galaxy-return{left:64px;top:18px;padding:0 12px}.galaxy-return .label{display:none}.right-panel{top:auto;bottom:72px;right:12px;width:calc(100vw - 24px)}.right-panel .log-card{display:none}.hud{top:82px;left:12px;width:270px}.card{padding:13px}.balance{font-size:23px}.help{bottom:18px}.topbar{padding:0 14px}.phase{display:none}.system-name{top:76px}}
     @media(max-width:560px){.hud{width:calc(100vw - 24px)}.metric-grid{grid-template-columns:repeat(4,1fr)}.metric{padding:8px}.metric strong{font-size:12px}.right-panel{bottom:62px}.hash-card{padding:12px}.discovery strong{font-size:17px}.help{font-size:8px;padding:9px 12px}.decoder-card{padding:22px 14px}.crater-grid,.terminal-grid{grid-template-columns:repeat(4,48px);gap:8px}.crater,.terminal{width:48px;height:48px}}
   </style>
 </head>
@@ -92,9 +90,6 @@
   </header>
   <button class="galaxy-return" id="galaxyReturnBtn" type="button" aria-label="Return to galaxy">
     <span class="arrow">←</span><span class="label">RETURN TO GALAXY</span>
-  </button>
-  <button class="system-return" id="systemReturnBtn" type="button" aria-label="Return to solar system">
-    <span class="arrow">←</span><span class="label">RETURN TO SOLAR SYSTEM</span>
   </button>
 
   <section class="hud">
@@ -168,7 +163,7 @@
       <div class="eyebrow" style="margin-top:24px">SOLAR SYSTEM COMPLETE</div>
       <h2 id="completedSystemTitle">System Explored</h2>
       <p>Every object in this solar system has been decoded.</p>
-      <div class="sig-reward" id="completedObjectCount">4 / 4 PRIMARY OBJECTS</div>
+      <div class="sig-reward">10 / 10 OBJECTS</div>
       <button class="primary" id="returnGalaxyBtn" type="button">Return to Galaxy</button>
     </div>
   </div>
@@ -190,8 +185,7 @@
   const fmt=n=>n.toFixed(12);
   const pad=n=>String(n).padStart(3,'0');
 
-  let width=0,height=0,stars=[],particles=[],systemObjects=[],allSystemObjects=[];
-  let systemHierarchy={star:null,planets:[]};
+  let width=0,height=0,stars=[],particles=[],systemObjects=[];
   let yaw=0,pitch=0,zoom=760,targetYaw=0,targetPitch=0,targetZoom=760;
   const DEFAULT_SYSTEM_YAW=0;
   const DEFAULT_SYSTEM_PITCH=.58;
@@ -202,16 +196,7 @@
   let selectedStar=null,currentObject=null,currentHash='',currentSegment='',segmentStart=0;
   let pendingSystemCompletion=false;
   let systemTransition=null;
-  let planetTransition=null;
-  let selectedPlanet=null;
-  let selectedLocalObject=null;
-  let planetViewYaw=0,targetPlanetViewYaw=0;
-  let planetViewPitch=.68,targetPlanetViewPitch=.68;
-  let planetViewZoom=1,targetPlanetViewZoom=1;
-  let planetEntryTime=0;
   let arrivalAnimation=null;
-  let arrivalFx=null;
-  let ambientDust=[];
   let systemReveal=1;
   let nonce=0,validations=0,signatures=0,contribution=0,balance=0,logCount=0;
   let sessionStart=Date.now();
@@ -224,65 +209,6 @@
     canvas.style.width=width+'px';canvas.style.height=height+'px';
     ctx.setTransform(DPR,0,0,DPR,0,0);
     if(!stars.length)buildUniverse();
-    buildAmbientDust();
-  }
-
-  function buildAmbientDust(){
-    const count=width<600?34:58;
-    ambientDust=Array.from({length:count},(_,i)=>({
-      x:Math.random()*width,
-      y:Math.random()*height,
-      depth:.2+Math.random()*.8,
-      size:.35+Math.random()*1.15,
-      driftX:(Math.random()-.5)*.055,
-      driftY:.018+Math.random()*.055,
-      phase:Math.random()*Math.PI*2
-    }));
-  }
-
-  function arrivalProgress(){
-    if(!arrivalFx)return 1;
-    return clamp((performance.now()-arrivalFx.start)/arrivalFx.duration,0,1);
-  }
-
-  function drawAmbientDust(){
-    if(!ambientDust.length)return;
-    const now=performance.now();
-    ctx.save();
-    ctx.globalCompositeOperation='screen';
-    for(const d of ambientDust){
-      d.x+=d.driftX*(.45+d.depth);
-      d.y+=d.driftY*(.45+d.depth);
-      if(d.x<-8)d.x=width+8;if(d.x>width+8)d.x=-8;
-      if(d.y>height+8){d.y=-8;d.x=Math.random()*width}
-      const twinkle=.72+.28*Math.sin(now*.00055+d.phase);
-      ctx.globalAlpha=(.035+d.depth*.085)*twinkle;
-      ctx.fillStyle=d.depth>.72?'#fff1cf':'#d9e8ff';
-      ctx.beginPath();ctx.arc(d.x,d.y,d.size*(.55+d.depth),0,Math.PI*2);ctx.fill();
-    }
-    ctx.restore();
-    ctx.globalAlpha=1;
-  }
-
-  function drawArrivalExposure(){
-    if(!arrivalFx)return;
-    const t=arrivalProgress();
-    const strength=(1-smoothstep(.05,.78,t));
-    if(strength<=.001)return;
-    const cx=width/2,cy=height/2+height*.055;
-    ctx.save();
-    ctx.globalCompositeOperation='screen';
-    const glow=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(width,height)*.58);
-    glow.addColorStop(0,`rgba(255,235,190,${strength*.12})`);
-    glow.addColorStop(.34,`rgba(120,175,255,${strength*.035})`);
-    glow.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=glow;ctx.fillRect(0,0,width,height);
-    ctx.restore();
-    ctx.save();
-    ctx.globalAlpha=strength*.16;
-    const shade=ctx.createRadialGradient(cx,cy,Math.min(width,height)*.22,cx,cy,Math.max(width,height)*.72);
-    shade.addColorStop(0,'rgba(0,0,0,0)');shade.addColorStop(1,'rgba(0,0,0,.82)');
-    ctx.fillStyle=shade;ctx.fillRect(0,0,width,height);ctx.restore();
   }
 
   function buildUniverse(){
@@ -299,11 +225,10 @@
   }
 
   function buildSolarSystem(){
-    // Experience Pass 2 — Phase 0.1: three visible primary planets, with
-    // moons, satellites, and stations stored beneath those planets for later zoom levels.
-    const childTypes=['moon','satellite','station','moon','satellite','station'];
-    for(let i=childTypes.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[childTypes[i],childTypes[j]]=[childTypes[j],childTypes[i]]}
-    const types=['planet','planet','planet',...childTypes]
+    const orbitTypes=['planet','moon','satellite','station'];
+    const types=[...orbitTypes];
+    while(types.length<9)types.push(orbitTypes[Math.floor(Math.random()*orbitTypes.length)]);
+    for(let i=types.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[types[i],types[j]]=[types[j],types[i]]}
 
     const pick=a=>a[Math.floor(Math.random()*a.length)];
     const rand=(a,b)=>a+Math.random()*(b-a);
@@ -318,12 +243,11 @@
     ];
     const starStyle=pick(starStyles);
 
-    const systemStar={
+    systemObjects=[{
       id:0,type:'star',label:'Star',angle:0,ring:0,size:rand(31,39),color:starStyle.color,
       sx:0,sy:0,pulse:0,decoded:false,
       visual:{...starStyle,spots:Math.floor(rand(14,30)),corona:rand(.8,1.25)}
-    };
-    allSystemObjects=[systemStar];
+    }];
 
     const planetWorlds=[
       {
@@ -393,12 +317,8 @@
     ];
 
     types.forEach((type,i)=>{
-      const isPrimaryPlanet=type==='planet';
-      const ring=isPrimaryPlanet?i+1:0;
-      const slot=isPrimaryPlanet?i:i-3;
-      const angle=isPrimaryPlanet
-        ?(i/3)*Math.PI*2+ring*.52+(Math.random()-.5)*.24
-        :(slot/6)*Math.PI*2+(Math.random()-.5)*.3;
+      const ring=1+Math.floor(i/3),slot=i%3;
+      const angle=(slot/3)*Math.PI*2+ring*.52+(Math.random()-.5)*.24;
       const meta={planet:['Planet','#79b7ff',20],moon:['Moon','#e5e1da',13],satellite:['Satellite','#72e5a0',12],station:['Space Station','#d9a64b',17]}[type];
 
       let visual={};
@@ -485,33 +405,11 @@
         };
       }
 
-      allSystemObjects.push({
+      systemObjects.push({
         id:i+1,type,label:meta[0],angle,ring,size:meta[2],color:meta[1],
-        sx:0,sy:0,pulse:Math.random()*6.28,decoded:false,visual,
-        parentPlanetId:null,hiddenInSystemView:type!=='planet'
+        sx:0,sy:0,pulse:Math.random()*6.28,decoded:false,visual
       });
     });
-
-    const planets=allSystemObjects.filter(o=>o.type==='planet');
-    const children=allSystemObjects.filter(o=>o.type!=='star'&&o.type!=='planet');
-    planets.forEach((planet,index)=>{
-      planet.label=`Planet ${String.fromCharCode(65+index)}`;
-      planet.children={moons:[],stations:[],satellites:[]};
-    });
-    children.forEach((child,index)=>{
-      const parent=planets[index%planets.length];
-      child.parentPlanetId=parent.id;
-      child.localOrbit=1+Math.floor(index/planets.length);
-      child.localAngle=(index/children.length)*Math.PI*2+Math.random()*.45;
-      if(child.type==='moon')parent.children.moons.push(child);
-      else if(child.type==='station')parent.children.stations.push(child);
-      else parent.children.satellites.push(child);
-    });
-
-    systemHierarchy={star:systemStar,planets};
-    // Phase 0.1 system view intentionally exposes only the star and primary planets.
-    // Child objects remain generated and attached to their parent for Phase 0.2/0.3.
-    systemObjects=[systemHierarchy.star,...systemHierarchy.planets];
   }
 
   function rotatePoint(s){
@@ -532,15 +430,10 @@
     updateArrivalAnimation(performance.now());
     yaw+=(targetYaw-yaw)*.075;pitch+=(targetPitch-pitch)*.075;zoom+=(targetZoom-zoom)*.07;
     systemYaw+=(targetSystemYaw-systemYaw)*.09;systemPitch+=(targetSystemPitch-systemPitch)*.09;systemZoom+=(targetSystemZoom-systemZoom)*.09;
-    planetViewYaw+=(targetPlanetViewYaw-planetViewYaw)*.09;planetViewPitch+=(targetPlanetViewPitch-planetViewPitch)*.09;planetViewZoom+=(targetPlanetViewZoom-planetViewZoom)*.09;
     ctx.fillStyle='#030508';ctx.fillRect(0,0,width,height);drawNebula();
     if(mode==='universe')drawUniverse();
     else if(mode==='transition')drawSystemTransition();
-    else if(mode==='planet-transition')drawPlanetTransition();
-    else if(mode==='planet')drawPlanetView();
     else drawSystem();
-    if(mode==='system'||(mode==='transition'&&systemTransition?.systemBuilt))drawAmbientDust();
-    drawArrivalExposure();
     updateParticles();requestAnimationFrame(draw);
   }
 
@@ -693,7 +586,6 @@
       systemPitch=targetSystemPitch=DEFAULT_SYSTEM_PITCH-.065;
       systemZoom=targetSystemZoom=.86;
       systemReveal=0;
-      arrivalFx={start:performance.now()+170,duration:1180};
     }
 
     if(systemTransition.systemBuilt&&systemFade>0){
@@ -730,7 +622,6 @@
     systemYaw=targetSystemYaw=DEFAULT_SYSTEM_YAW+.018;
     systemPitch=targetSystemPitch=DEFAULT_SYSTEM_PITCH-.012;
     systemZoom=targetSystemZoom=DEFAULT_SYSTEM_ZOOM+.035;
-    if(!arrivalFx)arrivalFx={start:performance.now()-220,duration:1180};
     arrivalAnimation={
       start:performance.now(),duration:680,
       yawOffset:.018,pitchOffset:-.012,zoomOffset:.035,
@@ -742,7 +633,7 @@
     $('systemTitle').textContent=`E-${String(star.id).padStart(4,'0')}`;
     $('systemName').classList.add('show');
     $('galaxyReturnBtn').classList.add('show');
-    $('help').textContent='DRAG TO ROTATE · SCROLL TO ZOOM · CLICK A PLANET TO EXPLORE';
+    $('help').textContent='DRAG TO ROTATE · SCROLL TO ZOOM · CLICK AN UNDECODED OBJECT';
     $('help').style.opacity='1';
     $('hash').textContent='Solar system entered. Select an object to generate the next SHA-256 hash.';
   }
@@ -840,7 +731,7 @@
     ctx.restore();
   }
 
-  function drawSystemOrbit(radius,cx,cy,cosY,sinY,cosP,sinP,alpha=.22,ringIndex=1){
+  function drawSystemOrbit(radius,cx,cy,cosY,sinY,cosP,sinP,alpha=.22){
   const t=performance.now()*0.001;
   const traceOrbit=()=>{
     ctx.beginPath();
@@ -880,22 +771,6 @@
   ctx.lineWidth=.26;
   traceOrbit();ctx.stroke();
   ctx.setLineDash([]);
-
-  // Phase 6: a single navigation-light sweep maps each orbit on arrival.
-  if(arrivalFx){
-    const fx=arrivalProgress();
-    const sweepT=clamp((fx-(.10+ringIndex*.08))/.34,0,1);
-    if(sweepT>0&&sweepT<1){
-      const a=sweepT*Math.PI*2-Math.PI*.5;
-      const p=projectSystemPoint(Math.cos(a)*radius,Math.sin(a)*radius,cx,cy,cosY,sinY,cosP,sinP*1.12);
-      const spark=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,8);
-      spark.addColorStop(0,'rgba(255,250,225,.9)');
-      spark.addColorStop(.3,'rgba(255,210,120,.45)');
-      spark.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.globalAlpha=alpha*(1-Math.abs(sweepT-.5)*1.2);
-      ctx.fillStyle=spark;ctx.beginPath();ctx.arc(p.x,p.y,8,0,Math.PI*2);ctx.fill();
-    }
-  }
 
   ctx.restore();
 }
@@ -944,7 +819,7 @@
 
     for(let i=1;i<=3;i++){
       const orbitReveal=smoothstep(.12+i*.10,.34+i*.12,reveal);
-      drawSystemOrbit(maxR*(i/3),cx,cy,cosY,sinY,cosP,sinP,(.16+i*.018)*orbitReveal,i);
+      drawSystemOrbit(maxR*(i/3),cx,cy,cosY,sinY,cosP,sinP,(.16+i*.018)*orbitReveal);
     }
 
     const beltReveal=smoothstep(.48,.78,reveal);
@@ -988,244 +863,15 @@
       const objectReveal=smoothstep(revealStart,revealEnd,reveal);
 
       const baseScale=item.o.type==='star'?1.03:clamp(item.scale*.68,.48,.9);
-      const fx=arrivalFx?arrivalProgress():1;
-      const lightStart=item.o.type==='star'?.045:.21+item.o.ring*.105+((item.o.id-1)%3)*.028;
-      const lightPulse=arrivalFx?Math.sin(clamp((fx-lightStart)/.28,0,1)*Math.PI):0;
-      const ignition=item.o.type==='star'&&arrivalFx?Math.sin(clamp((fx-.035)/.24,0,1)*Math.PI):0;
-      item.o.renderScale=baseScale*lerp(item.o.type==='star'?.94:.965,1,objectReveal)*(1+ignition*.055);
+      item.o.renderScale=baseScale*lerp(item.o.type==='star'?.94:.965,1,objectReveal);
       item.o.arrivalAlpha=objectReveal;
-      item.o.arrivalLight=lightPulse;
       drawObject(item.o);
     }
-  }
-
-  // Experience Pass 2 — Phase 0.3d: wide local space with a low, side-angle orbital view.
-  function getPlanetChildren(planet){
-    if(!planet?.children)return [];
-    return [...planet.children.moons,...planet.children.stations,...planet.children.satellites];
-  }
-
-  function drawLocalOrbit3D(radius,cx,cy,cosY,sinY,cosP,sinP,alpha){
-    ctx.save();
-    ctx.strokeStyle=`rgba(151,190,220,${alpha})`;
-    ctx.lineWidth=.75;
-    ctx.setLineDash([3,8]);
-    ctx.beginPath();
-    for(let i=0;i<=160;i++){
-      const a=i/160*Math.PI*2;
-      const p=projectSystemPoint(
-        Math.cos(a)*radius,
-        Math.sin(a)*radius,
-        cx,cy,cosY,sinY,cosP,sinP,
-        .34
-      );
-      if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);
-    }
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawPlanetFocus(planet,progress=1,withChildren=false){
-    drawSystemBackdrop();
-    const t=easeInOutCubic(clamp(progress,0,1));
-
-    // The planet remains anchored. Dragging rotates the local orbital plane
-    // around it, matching the controls and behavior of the solar-system view.
-    const targetX=width/2;
-    const targetY=height/2+height*.035;
-    const startX=planetTransition?.startX??planet.sx??targetX;
-    const startY=planetTransition?.startY??planet.sy??targetY;
-    const startScale=planetTransition?.startScale??planet.renderScale??.7;
-    const finalScale=clamp(Math.min(width,height)/(planet.size*6.3),3.1,5.35)*planetViewZoom;
-
-    planet.sx=lerp(startX,targetX,t);
-    planet.sy=lerp(startY,targetY,t);
-    planet.renderScale=lerp(startScale,finalScale,t);
-    planet.arrivalAlpha=1;
-    planet.arrivalLight=0;
-
-    if(withChildren){
-      const children=getPlanetChildren(planet);
-      const elapsed=Math.max(0,performance.now()-planetEntryTime);
-      const reveal=smoothstep(80,820,elapsed);
-      const orbitCount=Math.max(1,children.length);
-      // Local objects occupy a genuinely wide neighborhood around the planet.
-      // Width-based radii intentionally allow some signals to travel off-screen.
-      const minOrbit=Math.max(300,width*.27)*planetViewZoom;
-      const maxOrbit=Math.max(minOrbit+120,width*.36)*planetViewZoom;
-      const orbitRadius=index=>orbitCount===1
-        ?minOrbit
-        :lerp(minOrbit,maxOrbit,index/(orbitCount-1));
-
-      const cosY=Math.cos(planetViewYaw);
-      const sinY=Math.sin(planetViewYaw);
-      // A low side angle makes the default orbit read as a broad horizontal ellipse,
-      // rather than a near top-down planetary diagram.
-      const viewPitch=planetViewPitch-.48;
-      const cosP=Math.cos(viewPitch);
-      const sinP=Math.sin(viewPitch);
-
-      for(let i=0;i<orbitCount;i++){
-        drawLocalOrbit3D(orbitRadius(i),targetX,targetY,cosY,sinY,cosP,sinP,.12*reveal);
-      }
-
-      const projected=[];
-      children.forEach((child,index)=>{
-        child.pulse+=.018;
-        const radius=orbitRadius(index);
-        const motion=(child.visual?.orbitSpeed||.000008)*performance.now()*8;
-        const angle=(child.localAngle||0)+motion;
-        const p=projectSystemPoint(
-          Math.cos(angle)*radius,
-          Math.sin(angle)*radius,
-          targetX,targetY,cosY,sinY,cosP,sinP,
-          .34
-        );
-        projected.push({child,x:p.x,y:p.y,depth:p.depth,scale:p.scale,index});
-      });
-      projected.sort((a,b)=>a.depth-b.depth);
-
-      const drawLocalChild=item=>{
-        const child=item.child;
-        const localReveal=smoothstep(150+item.index*105,600+item.index*105,elapsed);
-        child.sx=item.x;
-        child.sy=item.y;
-        child.renderScale=clamp(.62+item.scale*.16,.54,.92)*planetViewZoom;
-        child.arrivalAlpha=localReveal;
-        child.arrivalLight=0;
-        drawObject(child);
-
-        if(child===selectedLocalObject&&localReveal>.8){
-          const rr=Math.max(18,child.size*child.renderScale*1.75);
-          ctx.save();
-          ctx.strokeStyle='rgba(255,224,160,.9)';
-          ctx.lineWidth=1.2;
-          ctx.setLineDash([4,5]);
-          ctx.beginPath();ctx.arc(child.sx,child.sy,rr,0,Math.PI*2);ctx.stroke();
-          ctx.restore();
-        }
-      };
-
-      projected.filter(item=>item.depth<0).forEach(drawLocalChild);
-      planet.arrivalAlpha=1;
-      drawObject(planet);
-      projected.filter(item=>item.depth>=0).forEach(drawLocalChild);
-    }else{
-      drawObject(planet);
-    }
-
-    const vignette=ctx.createRadialGradient(targetX,targetY,Math.min(width,height)*.16,targetX,targetY,Math.max(width,height)*.72);
-    vignette.addColorStop(0,'rgba(0,0,0,0)');
-    vignette.addColorStop(1,`rgba(0,0,0,${.28*t})`);
-    ctx.fillStyle=vignette;
-    ctx.fillRect(0,0,width,height);
-  }
-
-  function drawPlanetTransition(){
-    if(!planetTransition||!selectedPlanet)return;
-    const now=performance.now();
-    const raw=clamp((now-planetTransition.start)/planetTransition.duration,0,1);
-    const visual=planetTransition.direction==='in'?raw:1-raw;
-
-    ctx.save();
-    ctx.globalAlpha=1-smoothstep(.08,.88,visual);
-    drawSystem(1);
-    ctx.restore();
-
-    ctx.save();
-    ctx.globalAlpha=smoothstep(.02,.72,visual);
-    drawPlanetFocus(selectedPlanet,visual,false);
-    ctx.restore();
-    ctx.globalAlpha=1;
-
-    if(raw>=1){
-      if(planetTransition.direction==='in'){
-        mode='planet';
-        locked=false;
-        planetEntryTime=performance.now();
-        selectedLocalObject=null;
-        targetPlanetViewYaw=planetViewYaw=0;
-        targetPlanetViewPitch=planetViewPitch=.68;
-        targetPlanetViewZoom=planetViewZoom=1;
-        $('systemReturnBtn').classList.add('show');
-        $('galaxyReturnBtn').classList.remove('show');
-        $('systemTitle').textContent=selectedPlanet.label;
-        $('help').textContent='DRAG TO ORBIT · SCROLL TO ZOOM · CLICK A LOCAL OBJECT';
-        const count=getPlanetChildren(selectedPlanet).length;
-        $('hash').textContent=`${selectedPlanet.label} local space entered. ${count} orbiting signal${count===1?'':'s'} detected.`;
-      }else{
-        mode='system';
-        locked=false;
-        selectedLocalObject=null;
-        $('systemReturnBtn').classList.remove('show');
-        $('galaxyReturnBtn').classList.add('show');
-        $('systemTitle').textContent=`E-${String(selectedStar.id).padStart(4,'0')}`;
-        $('help').textContent='DRAG TO ROTATE · SCROLL TO ZOOM · CLICK A PLANET TO EXPLORE';
-        $('hash').textContent='Solar system view restored. Select a planet to explore it.';
-        selectedPlanet=null;
-      }
-      planetTransition=null;
-    }
-  }
-
-  function drawPlanetView(){
-    if(!selectedPlanet)return;
-    drawPlanetFocus(selectedPlanet,1,true);
-  }
-
-  function enterPlanet(planet){
-    if(locked||mode!=='system'||planet.type!=='planet')return;
-    locked=true;
-    selectedPlanet=planet;
-    selectedLocalObject=null;
-    planetTransition={
-      direction:'in',start:performance.now(),duration:900,
-      startX:planet.sx,startY:planet.sy,startScale:planet.renderScale||.7
-    };
-    mode='planet-transition';
-    $('galaxyReturnBtn').classList.remove('show');
-    $('help').textContent='APPROACHING PLANET';
-  }
-
-  function returnToSystem(){
-    if(locked||!selectedPlanet)return;
-    locked=true;
-    selectedLocalObject=null;
-    planetTransition={
-      direction:'out',start:performance.now(),duration:820,
-      startX:selectedPlanet.sx,startY:selectedPlanet.sy,startScale:selectedPlanet.renderScale||5
-    };
-    mode='planet-transition';
-    $('systemReturnBtn').classList.remove('show');
-    $('help').textContent='RETURNING TO SOLAR SYSTEM';
-  }
-
-  function hitLocalObject(x,y){
-    if(!selectedPlanet)return null;
-    let hit=null,best=Infinity;
-    for(const child of getPlanetChildren(selectedPlanet)){
-      const d=Math.hypot(x-child.sx,y-child.sy);
-      const radius=Math.max(22,child.size*(child.renderScale||1)*1.7);
-      if((child.arrivalAlpha??0)>.72&&d<radius&&d<best){hit=child;best=d}
-    }
-    return hit;
-  }
-
-  function selectLocalObject(object){
-    selectedLocalObject=object;
-    const parent=selectedPlanet?.label||'Planet';
-    const kind=object.type.charAt(0).toUpperCase()+object.type.slice(1);
-    $('hash').textContent=`Signal locked: ${object.label} — ${kind} orbiting ${parent}. Deeper signal interaction arrives in the next exploration pass.`;
-    $('rarity').textContent='LOCAL SIGNAL LOCKED';
-    $('depositType').textContent=`${kind.toUpperCase()} SIGNAL`;
-    $('reward').textContent='AWAITING DECODER';
-    addLog(`${kind.toUpperCase()} LOCATED`,parent);
   }
 
   function drawObject(o){
     const r=o.size*(o.renderScale||1)*(1+Math.sin(o.pulse)*.018);
     const alpha=(o.decoded?.32:1)*(o.arrivalAlpha??1);
-    const arrivalLight=o.arrivalLight||0;
     const systemCenterX=width/2;
     const systemCenterY=height/2+height*.055;
     const toStarX=systemCenterX-o.sx;
@@ -1248,23 +894,13 @@
 
     if(!o.decoded){
       const aura=ctx.createRadialGradient(o.sx,o.sy,r*.45,o.sx,o.sy,r*(o.type==='star'?2.8:1.9));
-      aura.addColorStop(0,o.type==='star'?`rgba(255,220,120,${.22+arrivalLight*.24})`:`rgba(190,220,255,${.07+arrivalLight*.12})`);
+      aura.addColorStop(0,o.type==='star'?'rgba(255,210,105,.22)':'rgba(150,185,220,.07)');
       aura.addColorStop(1,'rgba(0,0,0,0)');
       ctx.fillStyle=aura;
       ctx.beginPath();ctx.arc(o.sx,o.sy,r*(o.type==='star'?2.8:1.9),0,Math.PI*2);ctx.fill();
     }
 
     ctx.translate(o.sx,o.sy);
-
-    if(arrivalLight>.001&&o.type!=='star'){
-      const flash=ctx.createRadialGradient(lightX,lightY,0,lightX,lightY,r*1.25);
-      flash.addColorStop(0,`rgba(255,245,215,${arrivalLight*.34})`);
-      flash.addColorStop(.42,`rgba(170,215,255,${arrivalLight*.12})`);
-      flash.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.globalCompositeOperation='screen';
-      ctx.fillStyle=flash;ctx.beginPath();ctx.arc(0,0,r*1.25,0,Math.PI*2);ctx.fill();
-      ctx.globalCompositeOperation='source-over';
-    }
 
     if(o.type==='star'){
       const starTime=performance.now()*0.001;
@@ -1818,26 +1454,7 @@
     ctx.fillText((o.decoded?'✓ ':'')+o.label.toUpperCase(),o.sx,o.sy+r+18);
   }
 
-  function updateParticles(){
-    for(let i=particles.length-1;i>=0;i--){
-      const p=particles[i];
-      const decay=p.type==='arrival'?.018:.025;
-      p.life-=decay;
-      const oldX=p.x,oldY=p.y;
-      p.x+=p.vx;p.y+=p.vy;
-      const drag=p.type==='arrival'?.945:.985;
-      p.vx*=drag;p.vy*=drag;
-      ctx.globalAlpha=Math.max(0,Math.min(1,p.life));
-      ctx.fillStyle=p.color;
-      if(p.type==='arrival'&&Math.hypot(p.vx,p.vy)>.55){
-        ctx.strokeStyle=p.color;ctx.lineWidth=Math.max(.35,p.r*.72);ctx.beginPath();ctx.moveTo(oldX,oldY);ctx.lineTo(p.x,p.y);ctx.stroke();
-      }else{
-        ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
-      }
-      if(p.life<=0)particles.splice(i,1);
-    }
-    ctx.globalAlpha=1;
-  }
+  function updateParticles(){for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.life-=.025;p.x+=p.vx;p.y+=p.vy;p.vx*=.985;p.vy*=.985;ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();if(p.life<=0)particles.splice(i,1)}ctx.globalAlpha=1}
   function burst(x,y,color){for(let i=0;i<55;i++){const a=Math.random()*6.28,sp=.5+Math.random()*5;particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:.5+Math.random()*2,life:.7+Math.random()*.5,color})}}
   function hitStar(x,y){let hit=null,best=Infinity;for(const s of stars){if(!s.visible||!s.clickable)continue;const d=Math.hypot(x-s.sx,y-s.sy),radius=clamp(s.size*(620/s.depth)*9,12,34);if(d<radius&&d<best){hit=s;best=d}}return hit}
   function hitObject(x,y){let hit=null,best=Infinity;for(const o of systemObjects){if(o.decoded)continue;const d=Math.hypot(x-o.sx,y-o.sy),radius=Math.max(24,o.size*1.55);if(d<radius&&d<best){hit=o;best=d}}return hit}
@@ -1970,29 +1587,21 @@
   function showFlash(){$('flash').classList.add('show');setTimeout(()=>$('flash').classList.remove('show'),760)}
   function showSystemCompletion(){
     pendingSystemCompletion=false;
-    $('completedSystemTitle').textContent=`E-${String(selectedStar.id).padStart(4,'0')} Primary Survey Complete`;
-    $('completedObjectCount').textContent=`${systemObjects.length} / ${systemObjects.length} PRIMARY OBJECTS`;
+    $('completedSystemTitle').textContent=`E-${String(selectedStar.id).padStart(4,'0')} Explored`;
     $('completionModal').classList.add('open');
   }
   function returnToGalaxy(){
     $('completionModal').classList.remove('open');
     systemTransition=null;
-    planetTransition=null;
-    selectedPlanet=null;
-    selectedLocalObject=null;
     arrivalAnimation=null;
-    arrivalFx=null;
     systemReveal=1;
     document.body.classList.remove('system-traveling','system-arrived');
     mode='universe';
     systemObjects=[];
-    allSystemObjects=[];
-    systemHierarchy={star:null,planets:[]};
     selectedStar=null;
     currentObject=null;
     $('systemName').classList.remove('show');
     $('galaxyReturnBtn').classList.remove('show');
-    $('systemReturnBtn').classList.remove('show');
     $('help').textContent='DRAG TO ROTATE · SCROLL TO MOVE · CLICK A GLOWING STAR';
     $('hash').textContent='Solar system complete. Select another star to continue.';
     targetYaw=0;targetPitch=0;targetZoom=760;
@@ -2000,15 +1609,14 @@
   function addLog(type,value){logCount++;const row=document.createElement('div');row.className='log-row';row.innerHTML=`<span>${pad(logCount)}</span><b>${type}</b><em>${value}</em>`;$('log').prepend(row);while($('log').children.length>12)$('log').lastChild.remove()}
 
   canvas.addEventListener('pointerdown',e=>{if(locked)return;dragging=true;moved=false;lastX=e.clientX;lastY=e.clientY;canvas.classList.add('dragging');canvas.setPointerCapture(e.pointerId)});
-  canvas.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;if(mode==='universe'){targetYaw-=dx*.0042;targetPitch=clamp(targetPitch-dy*.0038,-1.25,1.25)}else if(mode==='system'){targetSystemYaw-=dx*.006;targetSystemPitch=clamp(targetSystemPitch-dy*.004,-.9,.9)}else if(mode==='planet'){targetPlanetViewYaw-=dx*.006;targetPlanetViewPitch=clamp(targetPlanetViewPitch-dy*.004,-.9,.9)}lastX=e.clientX;lastY=e.clientY});
-  canvas.addEventListener('pointerup',e=>{dragging=false;canvas.classList.remove('dragging');if(moved||locked)return;if(mode==='universe'){const hit=hitStar(e.clientX,e.clientY);if(hit)enterSystem(hit)}else if(mode==='system'){const hit=hitObject(e.clientX,e.clientY);if(hit){if(hit.type==='planet')enterPlanet(hit);else openDecoder(hit)}}else if(mode==='planet'){const hit=hitLocalObject(e.clientX,e.clientY);if(hit)selectLocalObject(hit)}});
-  canvas.addEventListener('wheel',e=>{e.preventDefault();if(mode==='universe')targetZoom=clamp(targetZoom+e.deltaY*.55,260,1450);else if(mode==='system')targetSystemZoom=clamp(targetSystemZoom-e.deltaY*.001,.62,1.75);else if(mode==='planet')targetPlanetViewZoom=clamp(targetPlanetViewZoom-e.deltaY*.0007,.78,1.28)},{passive:false});
-  canvas.addEventListener('dblclick',()=>{if(mode==='universe'){targetYaw=0;targetPitch=0;targetZoom=760}else if(mode==='system'){targetSystemYaw=DEFAULT_SYSTEM_YAW;targetSystemPitch=DEFAULT_SYSTEM_PITCH;targetSystemZoom=DEFAULT_SYSTEM_ZOOM}else if(mode==='planet'){targetPlanetViewYaw=0;targetPlanetViewPitch=.68;targetPlanetViewZoom=1}});
+  canvas.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;if(mode==='universe'){targetYaw-=dx*.0042;targetPitch=clamp(targetPitch-dy*.0038,-1.25,1.25)}else{targetSystemYaw-=dx*.006;targetSystemPitch=clamp(targetSystemPitch-dy*.004,-.9,.9)}lastX=e.clientX;lastY=e.clientY});
+  canvas.addEventListener('pointerup',e=>{dragging=false;canvas.classList.remove('dragging');if(moved||locked)return;if(mode==='universe'){const hit=hitStar(e.clientX,e.clientY);if(hit)enterSystem(hit)}else{const hit=hitObject(e.clientX,e.clientY);if(hit)openDecoder(hit)}});
+  canvas.addEventListener('wheel',e=>{e.preventDefault();if(mode==='universe')targetZoom=clamp(targetZoom+e.deltaY*.55,260,1450);else targetSystemZoom=clamp(targetSystemZoom-e.deltaY*.001,.62,1.75)},{passive:false});
+  canvas.addEventListener('dblclick',()=>{if(mode==='universe'){targetYaw=0;targetPitch=0;targetZoom=760}else{targetSystemYaw=DEFAULT_SYSTEM_YAW;targetSystemPitch=DEFAULT_SYSTEM_PITCH;targetSystemZoom=DEFAULT_SYSTEM_ZOOM}});
   $('closeDecoder').addEventListener('click',()=>{$('decoderModal').classList.remove('open');locked=false});
   $('continueBtn').addEventListener('click',()=>{$('signatureModal').classList.remove('open');contribution=0;$('contribution').textContent='0';$('contributionLabel').textContent='0';$('tideFill').style.width='0%';if(pendingSystemCompletion)showSystemCompletion()});
   $('returnGalaxyBtn').addEventListener('click',returnToGalaxy);
   $('galaxyReturnBtn').addEventListener('click',returnToGalaxy);
-  $('systemReturnBtn').addEventListener('click',returnToSystem);
   setInterval(()=>{const s=Math.floor((Date.now()-sessionStart)/1000);$('sessionTime').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},1000);
   addEventListener('resize',resize);resize();draw();
 })();
