@@ -203,6 +203,247 @@
   const palette=['#ffd98b','#8fc5ff','#ff8f72','#b8ff91','#f4f0e8'];
   const TARGET_ODDS=28;
 
+  const MW_PAN_W=3072;
+  const MW_PAN_H=1536;
+  const milkyWayPanorama=document.createElement('canvas');
+  milkyWayPanorama.width=MW_PAN_W;
+  milkyWayPanorama.height=MW_PAN_H;
+  const mwctx=milkyWayPanorama.getContext('2d',{alpha:false});
+
+  function mwMulberry32(seed) {
+    return function() {
+      let t = seed += 0x6D2B79F5;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  const mwRand = mwMulberry32(947351);
+
+  function mwGaussian() {
+    let u = 0, v = 0;
+    while (u === 0) u = mwRand();
+    while (v === 0) v = mwRand();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  function mwWrapX(x) {
+    x %= MW_PAN_W;
+    return x < 0 ? x + MW_PAN_W : x;
+  }
+
+  function mwBandCenter(x) {
+    const t = x / MW_PAN_W * Math.PI * 2;
+    return MW_PAN_H * (
+      0.52
+      + Math.sin(t * 0.78 - 0.85) * 0.105
+      + Math.sin(t * 1.85 + 0.75) * 0.025
+    );
+  }
+
+  function buildMilkyWayPanorama() {
+    mwctx.fillStyle = '#020307';
+    mwctx.fillRect(0, 0, MW_PAN_W, MW_PAN_H);
+
+    // Very subtle cool-black depth.
+    const bg = mwctx.createRadialGradient(
+      MW_PAN_W * 0.48, MW_PAN_H * 0.47, 30,
+      MW_PAN_W * 0.48, MW_PAN_H * 0.47, MW_PAN_W * 0.65
+    );
+    bg.addColorStop(0, 'rgba(9,14,24,.62)');
+    bg.addColorStop(0.45, 'rgba(4,7,13,.35)');
+    bg.addColorStop(1, 'rgba(0,0,0,0)');
+    mwctx.fillStyle = bg;
+    mwctx.fillRect(0, 0, MW_PAN_W, MW_PAN_H);
+
+    // Deep background stars.
+    for (let i = 0; i < 15000; i++) {
+      const x = mwRand() * MW_PAN_W;
+      const y = mwRand() * MW_PAN_H;
+      const sizeRoll = mwRand();
+      const r = sizeRoll > 0.997 ? 1.45 : sizeRoll > 0.97 ? 0.8 : 0.28 + mwRand() * 0.42;
+      const alpha = 0.13 + mwRand() * 0.56;
+
+      const tone = mwRand();
+      let color = `rgba(232,237,244,${alpha})`;
+      if (tone > 0.985) color = `rgba(255,225,174,${alpha * 0.95})`;
+      else if (tone > 0.965) color = `rgba(175,207,255,${alpha * 0.92})`;
+
+      mwctx.fillStyle = color;
+      mwctx.beginPath();
+      mwctx.arc(x, y, r, 0, Math.PI * 2);
+      mwctx.fill();
+    }
+
+    // Dense galactic star band.
+    mwctx.save();
+    mwctx.globalCompositeOperation = 'screen';
+    for (let i = 0; i < 24000; i++) {
+      let x = mwRand() * MW_PAN_W;
+      const center = mwBandCenter(x);
+
+      const coreDistance = Math.min(
+        Math.abs(x - MW_PAN_W * 0.56),
+        Math.abs(x - MW_PAN_W * 0.56 + MW_PAN_W),
+        Math.abs(x - MW_PAN_W * 0.56 - MW_PAN_W)
+      );
+      const core = Math.exp(-Math.pow(coreDistance / (MW_PAN_W * 0.24), 2));
+
+      const spread = MW_PAN_H * (0.060 + mwRand() * 0.095 + core * 0.012);
+      const y = center + mwGaussian() * spread;
+
+      const brightness = 0.07 + mwRand() * (0.30 + core * 0.10);
+      const sizeRoll = mwRand();
+      const r = sizeRoll > 0.995 ? 1.35 + mwRand() * 1.1 : 0.22 + mwRand() * 0.55;
+
+      const tone = mwRand();
+      let color;
+      if (tone < 0.19 + core * 0.28) {
+        color = `rgba(255,220,166,${brightness})`;
+      } else if (tone < 0.33) {
+        color = `rgba(176,204,244,${brightness * 0.92})`;
+      } else {
+        color = `rgba(240,242,238,${brightness})`;
+      }
+
+      mwctx.fillStyle = color;
+      mwctx.beginPath();
+      mwctx.arc(x, y, r, 0, Math.PI * 2);
+      mwctx.fill();
+    }
+    mwctx.restore();
+
+    // Smooth, distant central glow — stretched horizontally with no tiled blobs.
+    mwctx.save();
+    mwctx.globalCompositeOperation = 'screen';
+    const coreX = MW_PAN_W * 0.56;
+    const coreY = mwBandCenter(coreX);
+
+    mwctx.translate(coreX, coreY);
+    mwctx.scale(2.9, 0.78);
+
+    const coreGlow = mwctx.createRadialGradient(0, 0, 0, 0, 0, MW_PAN_H * 0.17);
+    coreGlow.addColorStop(0, 'rgba(255,218,168,.070)');
+    coreGlow.addColorStop(0.24, 'rgba(214,157,111,.050)');
+    coreGlow.addColorStop(0.56, 'rgba(145,116,95,.022)');
+    coreGlow.addColorStop(1, 'rgba(0,0,0,0)');
+
+    mwctx.fillStyle = coreGlow;
+    mwctx.beginPath();
+    mwctx.arc(0, 0, MW_PAN_H * 0.17, 0, Math.PI * 2);
+    mwctx.fill();
+    mwctx.restore();
+
+    // Dark dust lanes crossing the galaxy.
+    mwctx.save();
+    mwctx.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < 2200; i++) {
+      const x = mwRand() * MW_PAN_W;
+      const center = mwBandCenter(x);
+      const laneWave =
+        Math.sin(x / MW_PAN_W * Math.PI * 6.2 + 0.8) * MW_PAN_H * 0.017 +
+        Math.sin(x / MW_PAN_W * Math.PI * 14.4 - 0.2) * MW_PAN_H * 0.006;
+
+      const laneBias = mwRand() < 0.58 ? -0.018 : 0.016;
+      const y = center + laneWave + MW_PAN_H * laneBias + mwGaussian() * MW_PAN_H * 0.023;
+
+      const rx = 7 + mwRand() * 35;
+      const ry = 3 + mwRand() * 14;
+      const alpha = 0.018 + mwRand() * 0.055;
+
+      const dust = mwctx.createRadialGradient(x, y, 0, x, y, rx);
+      dust.addColorStop(0, `rgba(0,0,0,${alpha})`);
+      dust.addColorStop(0.65, `rgba(1,2,4,${alpha * 0.72})`);
+      dust.addColorStop(1, 'rgba(0,0,0,0)');
+
+      mwctx.fillStyle = dust;
+      mwctx.beginPath();
+      mwctx.ellipse(x, y, rx, ry, mwRand() * Math.PI, 0, Math.PI * 2);
+      mwctx.fill();
+    }
+    mwctx.restore();
+
+
+    // Medium foreground stars (sharp, subtle glow)
+    mwctx.save();
+    mwctx.globalCompositeOperation='screen';
+    for(let i=0;i<140;i++){
+      const x=mwRand()*MW_PAN_W;
+      const y=mwRand()*MW_PAN_H;
+      const r=0.8+mwRand()*1.8;
+      const alpha=0.55+mwRand()*0.35;
+
+      const tone=mwRand();
+      let rgb=[245,246,248];
+      if(tone<0.22) rgb=[255,224,176];
+      else if(tone<0.38) rgb=[185,214,255];
+
+      const glow=mwctx.createRadialGradient(x,y,0,x,y,r*7);
+      glow.addColorStop(0,`rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha*0.45})`);
+      glow.addColorStop(0.25,`rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha*0.18})`);
+      glow.addColorStop(1,'rgba(0,0,0,0)');
+      mwctx.fillStyle=glow;
+      mwctx.beginPath();
+      mwctx.arc(x,y,r*7,0,Math.PI*2);
+      mwctx.fill();
+
+      mwctx.fillStyle=`rgba(255,255,255,${alpha})`;
+      mwctx.beginPath();
+      mwctx.arc(x,y,r,0,Math.PI*2);
+      mwctx.fill();
+    }
+    mwctx.restore();
+
+    // Soft vignette baked into the panorama.
+    const vignette = mwctx.createRadialGradient(
+      MW_PAN_W * 0.5, MW_PAN_H * 0.5, MW_PAN_H * 0.18,
+      MW_PAN_W * 0.5, MW_PAN_H * 0.5, MW_PAN_W * 0.68
+    );
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(0.72, 'rgba(0,0,0,.08)');
+    vignette.addColorStop(1, 'rgba(0,0,0,.52)');
+    mwctx.fillStyle = vignette;
+    mwctx.fillRect(0, 0, MW_PAN_W, MW_PAN_H);
+  }
+
+
+
+  function drawMilkyWayBackground(alpha=1){
+    const sourceH=clamp(MW_PAN_H*.66,700,MW_PAN_H);
+    const aspect=width/Math.max(1,height);
+    const sourceW=Math.min(MW_PAN_W,sourceH*aspect);
+
+    // The Milky Way moves more slowly than the existing foreground stars.
+    const skyYaw=.12+yaw*.036;
+    const skyPitch=clamp(.5+pitch*.048,.30,.70);
+    let sourceX=skyYaw*MW_PAN_W-sourceW*.5;
+    const sourceY=clamp(skyPitch*MW_PAN_H-sourceH*.5,0,MW_PAN_H-sourceH);
+
+    let sx=mwWrapX(sourceX);
+    let remaining=sourceW;
+    let destX=0;
+
+    ctx.save();
+    ctx.globalAlpha=alpha;
+
+    while(remaining>0){
+      const chunk=Math.min(remaining,MW_PAN_W-sx);
+      const destW=width*(chunk/sourceW);
+      ctx.drawImage(
+        milkyWayPanorama,
+        sx,sourceY,chunk,sourceH,
+        destX,0,destW+1,height
+      );
+      remaining-=chunk;
+      destX+=destW;
+      sx=0;
+    }
+
+    ctx.restore();
+  }
+
+
   function resize(){
     width=innerWidth;height=innerHeight;
     canvas.width=width*DPR;canvas.height=height*DPR;
@@ -428,9 +669,9 @@
 
   function draw(){
     updateArrivalAnimation(performance.now());
-    yaw+=(targetYaw-yaw)*.075;pitch+=(targetPitch-pitch)*.075;zoom+=(targetZoom-zoom)*.07;
+    yaw+=(targetYaw-yaw)*.028;pitch+=(targetPitch-pitch)*.028;zoom+=(targetZoom-zoom)*.07;
     systemYaw+=(targetSystemYaw-systemYaw)*.09;systemPitch+=(targetSystemPitch-systemPitch)*.09;systemZoom+=(targetSystemZoom-systemZoom)*.09;
-    ctx.fillStyle='#030508';ctx.fillRect(0,0,width,height);drawNebula();
+    ctx.fillStyle='#030508';ctx.fillRect(0,0,width,height);
     if(mode==='universe')drawUniverse();
     else if(mode==='transition')drawSystemTransition();
     else drawSystem();
@@ -438,6 +679,7 @@
   }
 
   function drawUniverse(warp=0,focusStar=null,fade=1){
+    drawMilkyWayBackground(fade);
     const projected=[];
     for(const s of stars){
       s.pulse+=.016;const p=rotatePoint(s);if(p.z<80){s.visible=false;continue}
@@ -1609,7 +1851,15 @@
   function addLog(type,value){logCount++;const row=document.createElement('div');row.className='log-row';row.innerHTML=`<span>${pad(logCount)}</span><b>${type}</b><em>${value}</em>`;$('log').prepend(row);while($('log').children.length>12)$('log').lastChild.remove()}
 
   canvas.addEventListener('pointerdown',e=>{if(locked)return;dragging=true;moved=false;lastX=e.clientX;lastY=e.clientY;canvas.classList.add('dragging');canvas.setPointerCapture(e.pointerId)});
-  canvas.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;if(mode==='universe'){targetYaw-=dx*.0042;targetPitch=clamp(targetPitch-dy*.0038,-1.25,1.25)}else{targetSystemYaw-=dx*.006;targetSystemPitch=clamp(targetSystemPitch-dy*.004,-.9,.9)}lastX=e.clientX;lastY=e.clientY});
+  canvas.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;if(mode==='universe'){
+    // Slower, more deliberate galaxy navigation. A full-screen drag now turns
+    // the foreground stars roughly a quarter-turn instead of spinning repeatedly.
+    targetYaw=clamp(targetYaw-dx*.00022,-0.55,0.55);
+    targetPitch=clamp(targetPitch-dy*.00035,-0.75,0.75);
+  }else{
+    targetSystemYaw-=dx*.006;
+    targetSystemPitch=clamp(targetSystemPitch-dy*.004,-.9,.9);
+  }lastX=e.clientX;lastY=e.clientY});
   canvas.addEventListener('pointerup',e=>{dragging=false;canvas.classList.remove('dragging');if(moved||locked)return;if(mode==='universe'){const hit=hitStar(e.clientX,e.clientY);if(hit)enterSystem(hit)}else{const hit=hitObject(e.clientX,e.clientY);if(hit)openDecoder(hit)}});
   canvas.addEventListener('wheel',e=>{e.preventDefault();if(mode==='universe')targetZoom=clamp(targetZoom+e.deltaY*.55,260,1450);else targetSystemZoom=clamp(targetSystemZoom-e.deltaY*.001,.62,1.75)},{passive:false});
   canvas.addEventListener('dblclick',()=>{if(mode==='universe'){targetYaw=0;targetPitch=0;targetZoom=760}else{targetSystemYaw=DEFAULT_SYSTEM_YAW;targetSystemPitch=DEFAULT_SYSTEM_PITCH;targetSystemZoom=DEFAULT_SYSTEM_ZOOM}});
@@ -1618,7 +1868,7 @@
   $('returnGalaxyBtn').addEventListener('click',returnToGalaxy);
   $('galaxyReturnBtn').addEventListener('click',returnToGalaxy);
   setInterval(()=>{const s=Math.floor((Date.now()-sessionStart)/1000);$('sessionTime').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},1000);
-  addEventListener('resize',resize);resize();draw();
+  addEventListener('resize',resize);buildMilkyWayPanorama();resize();draw();
 })();
 </script>
 </body>
