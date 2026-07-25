@@ -415,8 +415,9 @@
     const sourceW=Math.min(MW_PAN_W,sourceH*aspect);
 
     // The Milky Way moves more slowly than the existing foreground stars.
-    const skyYaw=.12+yaw*.036;
-    const skyPitch=clamp(.5+pitch*.048,.30,.70);
+    // Full 360-degree sky tied to the same camera as the foreground stars.
+    const skyYaw=.12+yaw/(Math.PI*2);
+    const skyPitch=clamp(.5+pitch/Math.PI*.44,.16,.84);
     let sourceX=skyYaw*MW_PAN_W-sourceW*.5;
     const sourceY=clamp(skyPitch*MW_PAN_H-sourceH*.5,0,MW_PAN_H-sourceH);
 
@@ -454,15 +455,50 @@
 
   function buildUniverse(){
     stars=[];
-    const count=width<600?190:330;
+
+    const count=width<600?150:260;
+
+    // Fixed stars placed on the inside of a huge celestial sphere.
+    // Their apparent sizes stay close to the approved shallow-dome version.
     for(let i=0;i<count;i++){
-      const r=400+Math.random()*1800,theta=Math.random()*Math.PI*2,phi=Math.acos(2*Math.random()-1);
-      stars.push({id:i+1,x:r*Math.sin(phi)*Math.cos(theta),y:r*Math.cos(phi)*.72,z:r*Math.sin(phi)*Math.sin(theta),size:.6+Math.random()*2.2,color:palette[Math.floor(Math.random()*palette.length)],pulse:Math.random()*6.28,clickable:Math.random()>.74,sx:0,sy:0,depth:0,visible:false});
+      const theta=Math.random()*Math.PI*2;
+      const yNorm=Math.random()*1.70-.85;
+      const phi=Math.asin(clamp(yNorm,-.98,.98));
+      const radius=1450+Math.random()*900;
+
+      stars.push({
+        id:i+1,
+        theta,
+        phi,
+        radius,
+        size:.55+Math.random()*1.75,
+        color:palette[Math.floor(Math.random()*palette.length)],
+        pulse:Math.random()*6.28,
+        clickable:Math.random()>.80,
+        sx:0,sy:0,depth:0,visible:false
+      });
     }
-    for(let i=0;i<14;i++){
-      const angle=i/14*Math.PI*2;
-      stars.push({id:stars.length+1,x:Math.sin(angle)*520+(Math.random()-.5)*180,y:(Math.random()-.5)*480,z:900+Math.cos(angle)*380,size:1.4+Math.random()*2.7,color:palette[i%palette.length],pulse:Math.random()*6.28,clickable:true,sx:0,sy:0,depth:0,visible:false});
-    }
+
+    // Guaranteed stronger destinations, distributed around the full sky.
+    const anchors=[
+      [-2.55,-.32],[-1.95,.16],[-1.38,-.42],[-.82,.34],
+      [-.28,-.12],[.34,.42],[.88,-.36],[1.42,.18],
+      [1.96,-.08],[2.48,.38],[2.92,-.28],[-3.02,.22]
+    ];
+
+    anchors.forEach((point,i)=>{
+      stars.push({
+        id:stars.length+1,
+        theta:point[0]+(Math.random()-.5)*.12,
+        phi:point[1]+(Math.random()-.5)*.09,
+        radius:1500+Math.random()*650,
+        size:1.35+Math.random()*2.25,
+        color:palette[i%palette.length],
+        pulse:Math.random()*6.28,
+        clickable:true,
+        sx:0,sy:0,depth:0,visible:false
+      });
+    });
   }
 
   function buildSolarSystem(){
@@ -654,10 +690,25 @@
   }
 
   function rotatePoint(s){
-    const cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
-    let x=s.x*cy-s.z*sy,z=s.x*sy+s.z*cy;
-    let y=s.y*cp-z*sp;z=s.y*sp+z*cp;z+=zoom;
-    return{x,y,z};
+    // Convert the fixed sky position to a camera-relative direction.
+    const relTheta=s.theta-yaw;
+    const cosPhi=Math.cos(s.phi);
+    const x=Math.sin(relTheta)*cosPhi;
+    const z=Math.cos(relTheta)*cosPhi;
+    const y=Math.sin(s.phi);
+
+    // Camera pitch rotates the direction vertically.
+    const cp=Math.cos(pitch);
+    const sp=Math.sin(pitch);
+    const ry=y*cp-z*sp;
+    const rz=y*sp+z*cp;
+
+    // Positive rz means the star is in front of the viewer.
+    return{
+      x:x*s.radius,
+      y:ry*s.radius,
+      z:rz*s.radius+zoom
+    };
   }
 
   function drawNebula(){
@@ -669,7 +720,12 @@
 
   function draw(){
     updateArrivalAnimation(performance.now());
-    yaw+=(targetYaw-yaw)*.028;pitch+=(targetPitch-pitch)*.028;zoom+=(targetZoom-zoom)*.07;
+    if(Math.abs(yaw)>Math.PI*8&&!dragging){
+      const turns=Math.round(yaw/(Math.PI*2));
+      yaw-=turns*Math.PI*2;
+      targetYaw-=turns*Math.PI*2;
+    }
+    yaw+=(targetYaw-yaw)*.034;pitch+=(targetPitch-pitch)*.034;zoom+=(targetZoom-zoom)*.07;
     systemYaw+=(targetSystemYaw-systemYaw)*.09;systemPitch+=(targetSystemPitch-systemPitch)*.09;systemZoom+=(targetSystemZoom-systemZoom)*.09;
     ctx.fillStyle='#030508';ctx.fillRect(0,0,width,height);
     if(mode==='universe')drawUniverse();
@@ -1729,8 +1785,8 @@
       fromYaw:targetYaw,
       fromPitch:targetPitch,
       fromZoom:targetZoom,
-      toYaw:targetYaw+desiredYaw*.78,
-      toPitch:clamp(targetPitch+desiredPitch*.78,-1.15,1.15)
+      toYaw:targetYaw+desiredYaw*.16,
+      toPitch:clamp(targetPitch+desiredPitch*.16,-.82,.82)
     };
   }
 
@@ -1854,8 +1910,8 @@
   canvas.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;if(mode==='universe'){
     // Slower, more deliberate galaxy navigation. A full-screen drag now turns
     // the foreground stars roughly a quarter-turn instead of spinning repeatedly.
-    targetYaw=clamp(targetYaw-dx*.00022,-0.55,0.55);
-    targetPitch=clamp(targetPitch-dy*.00035,-0.75,0.75);
+    targetYaw-=dx*.00115;
+    targetPitch=clamp(targetPitch-dy*.00072,-1.02,1.02);
   }else{
     targetSystemYaw-=dx*.006;
     targetSystemPitch=clamp(targetSystemPitch-dy*.004,-.9,.9);
