@@ -1766,9 +1766,11 @@
     burst(star.sx,star.sy,star.color);
     $('help').style.opacity='0';
 
-    const desiredYaw=Math.atan2(star.x,star.z);
-    const flat=Math.sqrt(star.x*star.x+star.z*star.z);
-    const desiredPitch=-Math.atan2(star.y,flat);
+    // In the 360° sky version stars are stored by angle instead of x/y/z.
+    // Keep the current view centered during the warp rather than calculating
+    // from properties that no longer exist.
+    const desiredYaw=0;
+    const desiredPitch=0;
 
     document.body.classList.remove('system-arrived');
     document.body.classList.add('system-traveling');
