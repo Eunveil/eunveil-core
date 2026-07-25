@@ -145,7 +145,7 @@
   <section class="surface-hud" id="surfaceHud">
     <div class="surface-top"><div class="eyebrow">PLANETARY EXPEDITION</div><div class="surface-objective" id="surfaceObjective">Locate the signal source</div><div class="surface-distance" id="surfaceDistance">SIGNAL 000 M</div></div>
     <div class="surface-reticle"></div><div class="surface-prompt" id="surfacePrompt">HOLD E TO EXTRACT</div>
-    <div class="surface-compass" id="surfaceCompass">WASD TO MOVE · DRAG TO LOOK · E TO INTERACT</div>
+    <div class="surface-compass" id="surfaceCompass">WASD TO MOVE · DRAG IN ANY DIRECTION TO LOOK · E TO INTERACT</div>
   </section>
 
   <div class="journey-flash" id="flash"><div><small id="flashSmall">HASH VALIDATED</small><h2 id="flashTitle">FALSE TARGET</h2><p id="flashReward">Contribution +1</p></div></div>
@@ -214,7 +214,7 @@
   let selectedStar=null,currentObject=null,currentHash='',currentSegment='',segmentStart=0;
   let pendingSystemCompletion=false;
   let expeditionState='idle',signalObject=null,scanIndex=0,scanTimer=null;
-  let surface={x:0,z:0,yaw:0,targetYaw:0,artifactX:85,artifactZ:120,shipX:0,shipZ:0,artifactCollected:false,keys:new Set(),lastTime:0};
+  let surface={x:0,z:0,yaw:0,targetYaw:0,pitch:0,targetPitch:0,moveX:0,moveZ:0,artifactX:85,artifactZ:120,shipX:0,shipZ:0,artifactCollected:false,keys:new Set(),lastTime:0};
   let systemTransition=null;
   let arrivalAnimation=null;
   let systemReveal=1;
@@ -1802,15 +1802,30 @@
   function beginLanding(object){
     if(object!==signalObject||expeditionState!=='signal-found')return;
     locked=true;expeditionState='descending';setExpeditionPanel('DESCENT AUTHORIZED',`${object.label} ${object.id}`,'Entering the atmosphere and establishing a landing zone.','DESCENDING…',false);$('help').style.opacity='0';
-    setTimeout(()=>{mode='surface';document.body.classList.add('surface-mode');$('surfaceHud').classList.add('show');surface={x:0,z:0,yaw:0,targetYaw:0,artifactX:85,artifactZ:120,shipX:0,shipZ:0,artifactCollected:false,keys:new Set(),lastTime:performance.now()};locked=false;addLog('LANDED',`${object.label} ${object.id}`)},1100);
+    setTimeout(()=>{mode='surface';document.body.classList.add('surface-mode');$('surfaceHud').classList.add('show');surface={x:0,z:0,yaw:0,targetYaw:0,pitch:0,targetPitch:0,moveX:0,moveZ:0,artifactX:85,artifactZ:120,shipX:0,shipZ:0,artifactCollected:false,keys:new Set(),lastTime:performance.now()};locked=false;addLog('LANDED',`${object.label} ${object.id}`)},1100);
   }
   function drawSurface(now){
-    const dt=Math.min(.04,(now-(surface.lastTime||now))/1000);surface.lastTime=now;surface.yaw+=(surface.targetYaw-surface.yaw)*.12;
-    let forward=(surface.keys.has('KeyW')?1:0)-(surface.keys.has('KeyS')?1:0),strafe=(surface.keys.has('KeyD')?1:0)-(surface.keys.has('KeyA')?1:0);const len=Math.hypot(forward,strafe)||1;forward/=len;strafe/=len;const speed=34*dt;
-    surface.x+=(Math.sin(surface.yaw)*forward+Math.cos(surface.yaw)*strafe)*speed;surface.z+=(Math.cos(surface.yaw)*forward-Math.sin(surface.yaw)*strafe)*speed;
+    const dt=Math.min(.04,(now-(surface.lastTime||now))/1000);surface.lastTime=now;
+    surface.yaw+=(surface.targetYaw-surface.yaw)*.18;
+    surface.pitch+=(surface.targetPitch-surface.pitch)*.18;
+
+    // Camera-relative ground movement: W always follows the direction the camera faces.
+    let forward=(surface.keys.has('KeyW')?1:0)-(surface.keys.has('KeyS')?1:0);
+    let strafe=(surface.keys.has('KeyD')?1:0)-(surface.keys.has('KeyA')?1:0);
+    const inputLength=Math.hypot(forward,strafe)||1;forward/=inputLength;strafe/=inputLength;
+    // Keep movement and rendering in the same world-space coordinate system.
+    // At yaw 0 the player faces +Z. Turning right faces -X.
+    const forwardX=-Math.sin(surface.yaw),forwardZ=Math.cos(surface.yaw);
+    const rightX=Math.cos(surface.yaw),rightZ=Math.sin(surface.yaw);
+    const desiredX=(forwardX*forward+rightX*strafe)*34;
+    const desiredZ=(forwardZ*forward+rightZ*strafe)*34;
+    const response=1-Math.pow(.001,dt);
+    surface.moveX+=(desiredX-surface.moveX)*response;
+    surface.moveZ+=(desiredZ-surface.moveZ)*response;
+    surface.x+=surface.moveX*dt;surface.z+=surface.moveZ*dt;
     const sky=ctx.createLinearGradient(0,0,0,height);sky.addColorStop(0,'#07101d');sky.addColorStop(.52,'#15131a');sky.addColorStop(1,'#292019');ctx.fillStyle=sky;ctx.fillRect(0,0,width,height);
-    ctx.save();ctx.globalAlpha=.55;const oldYaw=yaw,oldPitch=pitch;yaw=surface.yaw*.28;pitch=-.12;drawMilkyWayBackground(.6);yaw=oldYaw;pitch=oldPitch;ctx.restore();
-    const horizon=height*.54;ctx.fillStyle='#29231e';ctx.beginPath();ctx.moveTo(0,horizon);for(let x=0;x<=width;x+=60){ctx.lineTo(x,horizon-18-Math.sin(x*.012+surface.x*.01)*18-Math.sin(x*.027)*9)}ctx.lineTo(width,height);ctx.lineTo(0,height);ctx.closePath();ctx.fill();
+    ctx.save();ctx.globalAlpha=.55;const oldYaw=yaw,oldPitch=pitch;yaw=surface.yaw;pitch=surface.pitch;drawMilkyWayBackground(.6);yaw=oldYaw;pitch=oldPitch;ctx.restore();
+    const horizon=height*.54+surface.pitch*height*.34;ctx.fillStyle='#29231e';ctx.beginPath();ctx.moveTo(0,horizon);for(let x=0;x<=width;x+=60){const ridgeAngle=surface.yaw+(x-width/2)/width*1.9;ctx.lineTo(x,horizon-18-Math.sin(ridgeAngle*2.3)*18-Math.sin(ridgeAngle*5.1)*9)}ctx.lineTo(width,height);ctx.lineTo(0,height);ctx.closePath();ctx.fill();
     const ground=ctx.createLinearGradient(0,horizon,0,height);ground.addColorStop(0,'#393029');ground.addColorStop(1,'#100e0d');ctx.fillStyle=ground;ctx.fillRect(0,horizon,width,height-horizon);
     // perspective guide rocks
     for(let i=0;i<55;i++){const wx=((i*97)%260)-130, wz=20+((i*53)%210);drawSurfaceMarker(wx,wz,2+((i*17)%5),'#5a5047',false)}
@@ -1820,7 +1835,11 @@
     $('surfacePrompt').classList.toggle('show',dist<13);$('surfacePrompt').textContent=surface.artifactCollected?'PRESS E TO LAUNCH':'PRESS E TO EXTRACT';
   }
   function drawSurfaceMarker(wx,wz,size,color,glow=false,label=''){
-    const dx=wx-surface.x,dz=wz-surface.z;const cs=Math.cos(-surface.yaw),sn=Math.sin(-surface.yaw);const rx=dx*cs-dz*sn,rz=dx*sn+dz*cs;if(rz<2)return;const scale=520/rz,sx=width/2+rx*scale,sy=height*.54+55*scale;if(sx<-100||sx>width+100)return;const r=Math.max(1,size*scale);
+    const dx=wx-surface.x,dz=wz-surface.z;
+    // Transform a fixed world-space point into camera space. This is the exact
+    // inverse of the movement basis above, so rocks stay planted in the world.
+    const cs=Math.cos(surface.yaw),sn=Math.sin(surface.yaw);
+    const rx=dx*cs+dz*sn,rz=-dx*sn+dz*cs;if(rz<2)return;const scale=520/rz,sx=width/2+rx*scale,sy=(height*.54+surface.pitch*height*.34)+55*scale;if(sx<-100||sx>width+100)return;const r=Math.max(1,size*scale);
     if(glow){const g=ctx.createRadialGradient(sx,sy-r,0,sx,sy-r,r*5);g.addColorStop(0,'rgba(255,220,110,.8)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(sx,sy-r,r*5,0,Math.PI*2);ctx.fill()}
     ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(sx-r,sy);ctx.lineTo(sx-r*.45,sy-r*1.8);ctx.lineTo(sx+r*.25,sy-r*2.4);ctx.lineTo(sx+r,sy);ctx.closePath();ctx.fill();if(label&&r>5){ctx.fillStyle='rgba(255,255,255,.75)';ctx.font='9px Inter';ctx.textAlign='center';ctx.fillText(label,sx,sy-r*2.8)}
   }
@@ -1995,6 +2014,7 @@
     targetPitch=clamp(targetPitch-dy*.00072,-1.02,1.02);
   }else if(mode==='surface'){
     surface.targetYaw-=dx*.004;
+    surface.targetPitch=clamp(surface.targetPitch-dy*.0032,-.72,.72);
   }else{
     targetSystemYaw-=dx*.006;
     targetSystemPitch=clamp(targetSystemPitch-dy*.004,-.9,.9);
