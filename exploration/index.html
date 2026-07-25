@@ -81,7 +81,7 @@
     .expedition-panel{position:fixed;z-index:32;left:50%;bottom:26px;transform:translateX(-50%);display:none;min-width:min(560px,calc(100vw - 32px));padding:14px 16px;border:1px solid rgba(255,224,160,.28);border-radius:18px;background:rgba(5,8,12,.88);backdrop-filter:blur(16px);box-shadow:0 18px 60px rgba(0,0,0,.35)}
     .expedition-panel.show{display:block}.expedition-row{display:flex;align-items:center;justify-content:space-between;gap:14px}.expedition-copy{min-width:0}.expedition-title{font-family:Georgia,serif;font-size:19px;color:var(--gold2);margin-top:4px}.expedition-text{font-size:11px;color:#aaa39a;margin-top:5px;line-height:1.45}.expedition-action{flex:0 0 auto;border:1px solid var(--gold2);border-radius:999px;padding:11px 18px;background:linear-gradient(135deg,#a87228,#efc36d);color:#090704;font-weight:850;cursor:pointer}.expedition-action:disabled{filter:grayscale(1);opacity:.45;cursor:default}
     .scan-ring{position:fixed;z-index:31;pointer-events:none;width:70px;height:70px;border:1px solid rgba(121,183,255,.8);border-radius:50%;opacity:0;transform:translate(-50%,-50%) scale(.5)}.scan-ring.active{animation:scanPulse 1.05s ease-out forwards}@keyframes scanPulse{0%{opacity:0;transform:translate(-50%,-50%) scale(.45)}18%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(2.2)}}
-    .surface-hud{position:fixed;z-index:34;inset:0;display:none;pointer-events:none}.surface-hud.show{display:block}.surface-top{position:absolute;top:88px;left:50%;transform:translateX(-50%);text-align:center;text-shadow:0 2px 12px #000}.surface-objective{font-family:Georgia,serif;font-size:24px;color:var(--gold2);margin-top:5px}.surface-distance{margin-top:7px;font-size:11px;letter-spacing:.15em;color:#d6d0c6}.surface-compass{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);padding:11px 18px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(4,7,10,.7);font-size:10px;letter-spacing:.13em;color:#c9c2b7}.surface-prompt{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);padding:12px 18px;border:1px solid var(--gold);border-radius:12px;background:rgba(3,5,8,.85);color:var(--gold2);font-weight:800;opacity:0;transition:opacity .2s}.surface-prompt.show{opacity:1}.surface-reticle{position:absolute;left:50%;top:50%;width:16px;height:16px;transform:translate(-50%,-50%)}.surface-reticle:before,.surface-reticle:after{content:"";position:absolute;background:rgba(255,255,255,.7)}.surface-reticle:before{left:7px;top:0;width:1px;height:16px}.surface-reticle:after{top:7px;left:0;height:1px;width:16px}
+    .surface-hud{position:fixed;z-index:34;inset:0;display:none;pointer-events:none}.surface-hud.show{display:block}.surface-top{position:absolute;top:88px;left:50%;transform:translateX(-50%);text-align:center;text-shadow:0 2px 12px #000}.surface-objective{font-family:Georgia,serif;font-size:24px;color:var(--gold2);margin-top:5px}.surface-distance{margin-top:7px;font-size:11px;letter-spacing:.15em;color:#d6d0c6}.surface-compass{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);padding:11px 18px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(4,7,10,.7);font-size:10px;letter-spacing:.13em;color:#c9c2b7}.surface-prompt{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);padding:12px 18px;border:1px solid var(--gold);border-radius:12px;background:rgba(3,5,8,.85);color:var(--gold2);font-weight:800;opacity:0;transition:opacity .2s}.surface-prompt.show{opacity:1}.surface-reticle{position:absolute;left:50%;top:50%;width:16px;height:16px;transform:translate(-50%,-50%)}.surface-reticle:before,.surface-reticle:after{content:"";position:absolute;background:rgba(255,255,255,.7)}.surface-reticle:before{left:7px;top:0;width:1px;height:16px}.surface-reticle:after{top:7px;left:0;height:1px;width:16px}.surface-top{padding:14px 22px;border-radius:18px;background:linear-gradient(180deg,rgba(3,6,10,.58),rgba(3,6,10,0));backdrop-filter:blur(2px)}.surface-prompt{box-shadow:0 0 30px rgba(226,174,83,.16),inset 0 0 18px rgba(226,174,83,.05)}
     body.surface-mode .hud,body.surface-mode .right-panel,body.surface-mode .system-name,body.surface-mode .galaxy-return,body.surface-mode .help,body.surface-mode .expedition-panel{display:none!important}
     @media(max-width:850px){.galaxy-return{left:64px;top:18px;padding:0 12px}.galaxy-return .label{display:none}.right-panel{top:auto;bottom:72px;right:12px;width:calc(100vw - 24px)}.right-panel .log-card{display:none}.hud{top:82px;left:12px;width:270px}.card{padding:13px}.balance{font-size:23px}.help{bottom:18px}.topbar{padding:0 14px}.phase{display:none}.system-name{top:76px}}
     @media(max-width:560px){.hud{width:calc(100vw - 24px)}.metric-grid{grid-template-columns:repeat(4,1fr)}.metric{padding:8px}.metric strong{font-size:12px}.right-panel{bottom:62px}.hash-card{padding:12px}.discovery strong{font-size:17px}.help{font-size:8px;padding:9px 12px}.decoder-card{padding:22px 14px}.crater-grid,.terminal-grid{grid-template-columns:repeat(4,48px);gap:8px}.crater,.terminal{width:48px;height:48px}}
@@ -214,7 +214,7 @@
   let selectedStar=null,currentObject=null,currentHash='',currentSegment='',segmentStart=0;
   let pendingSystemCompletion=false;
   let expeditionState='idle',signalObject=null,scanIndex=0,scanTimer=null;
-  let surface={x:0,z:0,yaw:0,targetYaw:0,pitch:0,targetPitch:0,moveX:0,moveZ:0,artifactX:85,artifactZ:120,shipX:0,shipZ:0,artifactCollected:false,keys:new Set(),lastTime:0};
+  let surface={x:0,z:0,yaw:0,targetYaw:0,pitch:0,targetPitch:0,moveX:0,moveZ:0,artifactX:85,artifactZ:120,shipX:0,shipZ:0,artifactCollected:false,keys:new Set(),lastTime:0,bob:0,bobAmount:0,rocks:[]};
   let systemTransition=null;
   let arrivalAnimation=null;
   let systemReveal=1;
@@ -1802,46 +1802,209 @@
   function beginLanding(object){
     if(object!==signalObject||expeditionState!=='signal-found')return;
     locked=true;expeditionState='descending';setExpeditionPanel('DESCENT AUTHORIZED',`${object.label} ${object.id}`,'Entering the atmosphere and establishing a landing zone.','DESCENDING…',false);$('help').style.opacity='0';
-    setTimeout(()=>{mode='surface';document.body.classList.add('surface-mode');$('surfaceHud').classList.add('show');surface={x:0,z:0,yaw:0,targetYaw:0,pitch:0,targetPitch:0,moveX:0,moveZ:0,artifactX:85,artifactZ:120,shipX:0,shipZ:0,artifactCollected:false,keys:new Set(),lastTime:performance.now()};locked=false;addLog('LANDED',`${object.label} ${object.id}`)},1100);
+    setTimeout(()=>{
+      mode='surface';document.body.classList.add('surface-mode');$('surfaceHud').classList.add('show');
+      const environment=object.type==='station'?'station':object.type==='moon'?'moon':object.type==='satellite'?'satellite':'planet';
+      const artifactDistance=environment==='station'?72:environment==='satellite'?92:120;
+      surface={x:0,z:0,yaw:0,targetYaw:0,pitch:0,targetPitch:0,moveX:0,moveZ:0,artifactX:environment==='station'?0:85,artifactZ:artifactDistance,shipX:0,shipZ:0,artifactCollected:false,keys:new Set(),lastTime:performance.now(),bob:0,bobAmount:0,environment,targetObject:object,rocks:buildSurfaceRocks(environment),terrainSeed:918273};
+      const names={planet:'PLANETARY EXPEDITION',moon:'LUNAR EXPEDITION',station:'STATION BOARDING',satellite:'ORBITAL EVA'};
+      document.querySelector('.surface-top .eyebrow').textContent=names[environment];
+      locked=false;addLog(environment==='station'?'DOCKED':environment==='satellite'?'EVA STARTED':'LANDED',`${object.label} ${object.id}`)
+    },1100);
+  }
+  function buildSurfaceRocks(environment='planet'){
+    const objects=[];
+    let seed=918273+(environment==='moon'?101:environment==='station'?202:environment==='satellite'?303:0);
+    const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+    if(environment==='station'){
+      // Fixed crates, consoles, support columns and machinery along a broad docking deck.
+      for(let row=0;row<12;row++){
+        const z=20+row*18;
+        objects.push({x:-20-(row%3)*5,z,size:4.5+rand()*3,tone:rand(),lean:0,prop:row%2?'console':'crate'});
+        objects.push({x:20+(row%4)*4,z:z+7,size:5+rand()*3,tone:rand(),lean:0,prop:row%3?'column':'machinery'});
+      }
+      for(let i=0;i<20;i++)objects.push({x:(rand()-.5)*70,z:25+rand()*210,size:2+rand()*4,tone:rand(),lean:0,prop:'debris'});
+      return objects;
+    }
+    if(environment==='satellite'){
+      for(let i=0;i<70;i++){
+        const a=rand()*Math.PI*2,d=18+Math.pow(rand(),.7)*280;
+        objects.push({x:Math.cos(a)*d,z:Math.sin(a)*d,size:1.5+rand()*7,tone:rand(),lean:(rand()-.5)*.12,prop:rand()<.42?'panel':'module'});
+      }
+      return objects;
+    }
+    const count=environment==='moon'?185:135;
+    for(let i=0;i<count;i++){
+      const a=rand()*Math.PI*2,d=18+Math.pow(rand(),.72)*310;
+      objects.push({x:Math.cos(a)*d,z:Math.sin(a)*d,size:1.2+Math.pow(rand(),2)*(environment==='moon'?6.5:8.5),tone:rand(),lean:(rand()-.5)*.55,prop:environment==='moon'?'lunarRock':'rock'});
+    }
+    return objects;
   }
   function drawSurface(now){
     const dt=Math.min(.04,(now-(surface.lastTime||now))/1000);surface.lastTime=now;
-    surface.yaw+=(surface.targetYaw-surface.yaw)*.18;
-    surface.pitch+=(surface.targetPitch-surface.pitch)*.18;
+    surface.yaw+=(surface.targetYaw-surface.yaw)*(1-Math.pow(.0007,dt));
+    surface.pitch+=(surface.targetPitch-surface.pitch)*(1-Math.pow(.0015,dt));
 
-    // Camera-relative ground movement: W always follows the direction the camera faces.
     let forward=(surface.keys.has('KeyW')?1:0)-(surface.keys.has('KeyS')?1:0);
     let strafe=(surface.keys.has('KeyD')?1:0)-(surface.keys.has('KeyA')?1:0);
     const inputLength=Math.hypot(forward,strafe)||1;forward/=inputLength;strafe/=inputLength;
-    // Keep movement and rendering in the same world-space coordinate system.
-    // At yaw 0 the player faces +Z. Turning right faces -X.
     const forwardX=-Math.sin(surface.yaw),forwardZ=Math.cos(surface.yaw);
     const rightX=Math.cos(surface.yaw),rightZ=Math.sin(surface.yaw);
-    const desiredX=(forwardX*forward+rightX*strafe)*34;
-    const desiredZ=(forwardZ*forward+rightZ*strafe)*34;
-    const response=1-Math.pow(.001,dt);
+    const sprinting=(surface.keys.has('ShiftLeft')||surface.keys.has('ShiftRight'))&&(forward||strafe);
+    const speed=sprinting?49:31;
+    const desiredX=(forwardX*forward+rightX*strafe)*speed;
+    const desiredZ=(forwardZ*forward+rightZ*strafe)*speed;
+    const accelerating=Math.abs(desiredX)+Math.abs(desiredZ)>.01;
+    const response=1-Math.pow(accelerating?.00018:.0045,dt);
     surface.moveX+=(desiredX-surface.moveX)*response;
     surface.moveZ+=(desiredZ-surface.moveZ)*response;
     surface.x+=surface.moveX*dt;surface.z+=surface.moveZ*dt;
-    const sky=ctx.createLinearGradient(0,0,0,height);sky.addColorStop(0,'#07101d');sky.addColorStop(.52,'#15131a');sky.addColorStop(1,'#292019');ctx.fillStyle=sky;ctx.fillRect(0,0,width,height);
-    ctx.save();ctx.globalAlpha=.55;const oldYaw=yaw,oldPitch=pitch;yaw=surface.yaw;pitch=surface.pitch;drawMilkyWayBackground(.6);yaw=oldYaw;pitch=oldPitch;ctx.restore();
-    const horizon=height*.54+surface.pitch*height*.34;ctx.fillStyle='#29231e';ctx.beginPath();ctx.moveTo(0,horizon);for(let x=0;x<=width;x+=60){const ridgeAngle=surface.yaw+(x-width/2)/width*1.9;ctx.lineTo(x,horizon-18-Math.sin(ridgeAngle*2.3)*18-Math.sin(ridgeAngle*5.1)*9)}ctx.lineTo(width,height);ctx.lineTo(0,height);ctx.closePath();ctx.fill();
-    const ground=ctx.createLinearGradient(0,horizon,0,height);ground.addColorStop(0,'#393029');ground.addColorStop(1,'#100e0d');ctx.fillStyle=ground;ctx.fillRect(0,horizon,width,height-horizon);
-    // perspective guide rocks
-    for(let i=0;i<55;i++){const wx=((i*97)%260)-130, wz=20+((i*53)%210);drawSurfaceMarker(wx,wz,2+((i*17)%5),'#5a5047',false)}
-    drawSurfaceMarker(surface.shipX,surface.shipZ,9,'#98a1aa',false,'SHIP');
+    const movementSpeed=Math.hypot(surface.moveX,surface.moveZ);
+    surface.bob+=dt*movementSpeed*(sprinting?.34:.29);
+    surface.bobAmount+=(clamp(movementSpeed/34,0,1)-surface.bobAmount)*(1-Math.pow(.006,dt));
+    const bobY=Math.sin(surface.bob*2.05)*3.2*surface.bobAmount;
+    const bobX=Math.sin(surface.bob)*1.25*surface.bobAmount;
+    const environment=surface.environment||'planet';
+    const isMoon=environment==='moon',isStation=environment==='station',isSatellite=environment==='satellite';
+
+    const sky=ctx.createLinearGradient(0,0,0,height);
+    if(isStation){sky.addColorStop(0,'#06090d');sky.addColorStop(.48,'#111820');sky.addColorStop(1,'#1b2025');}
+    else if(isMoon){sky.addColorStop(0,'#000106');sky.addColorStop(.62,'#05070b');sky.addColorStop(1,'#111318');}
+    else if(isSatellite){sky.addColorStop(0,'#000108');sky.addColorStop(.6,'#020712');sky.addColorStop(1,'#07111b');}
+    else{sky.addColorStop(0,'#020711');sky.addColorStop(.42,'#0a101a');sky.addColorStop(.7,'#241c20');sky.addColorStop(1,'#4a3024');}
+    ctx.fillStyle=sky;ctx.fillRect(0,0,width,height);
+    if(!isStation){ctx.save();ctx.globalAlpha=isMoon?.88:.68;const oldYaw=yaw,oldPitch=pitch;yaw=surface.yaw;pitch=surface.pitch;drawMilkyWayBackground(isMoon?.94:.72);yaw=oldYaw;pitch=oldPitch;ctx.restore();}
+    else{
+      // Rotating station wall panels and observation windows establish a sealed interior.
+      const panelShift=((surface.yaw%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+      for(let i=-2;i<10;i++){
+        const x=((i*190-panelShift*210)%1900+1900)%1900-250;
+        ctx.fillStyle=i%3===0?'#162535':'#111820';ctx.fillRect(x,0,150,height*.48);
+        ctx.strokeStyle='rgba(145,180,205,.16)';ctx.strokeRect(x,0,150,height*.48);
+        if(i%3===0){ctx.fillStyle='#020713';ctx.fillRect(x+16,38,118,height*.25);ctx.strokeStyle='rgba(100,180,230,.32)';ctx.strokeRect(x+16,38,118,height*.25);}
+      }
+      ctx.fillStyle='rgba(90,150,190,.08)';ctx.fillRect(0,height*.47,width,3);
+    }
+
+    // Environment-specific object in the sky: moon above planets, planet above moons,
+    // and a planet below an orbital satellite platform.
+    if(!isStation){
+      const bodyAngle=1.05-surface.yaw;
+      const bodyX=width/2+Math.sin(bodyAngle)*width*.46;
+      const bodyY=(isSatellite?height*.56:height*.18)+surface.pitch*height*.16;
+      const bodyR=Math.max(isSatellite?95:44,Math.min(width,height)*(isSatellite?.18:isMoon?.105:.075));
+      if(bodyX>-bodyR*2&&bodyX<width+bodyR*2){
+        const halo=ctx.createRadialGradient(bodyX,bodyY,bodyR*.2,bodyX,bodyY,bodyR*2.1);halo.addColorStop(0,isMoon?'rgba(100,165,230,.25)':'rgba(185,205,230,.22)');halo.addColorStop(1,'rgba(120,150,200,0)');ctx.fillStyle=halo;ctx.beginPath();ctx.arc(bodyX,bodyY,bodyR*2.1,0,Math.PI*2);ctx.fill();
+        const mg=ctx.createRadialGradient(bodyX-bodyR*.28,bodyY-bodyR*.3,bodyR*.08,bodyX,bodyY,bodyR);
+        if(isMoon||isSatellite){mg.addColorStop(0,'#7fc7ef');mg.addColorStop(.42,'#286ca5');mg.addColorStop(.72,'#163b63');mg.addColorStop(1,'#061222');}
+        else{mg.addColorStop(0,'#e4e8ea');mg.addColorStop(.48,'#9fa9b0');mg.addColorStop(1,'#4f5962');}
+        ctx.fillStyle=mg;ctx.beginPath();ctx.arc(bodyX,bodyY,bodyR,0,Math.PI*2);ctx.fill();
+        ctx.globalAlpha=.16;ctx.fillStyle=isMoon||isSatellite?'#d9f2ff':'#202832';for(let i=0;i<8;i++){const a=i*2.31;ctx.beginPath();ctx.arc(bodyX+Math.cos(a)*bodyR*(.18+(i%3)*.16),bodyY+Math.sin(a)*bodyR*(.15+(i%2)*.23),bodyR*(.06+(i%4)*.018),0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
+      }
+    }
+
+    // The horizon is deliberately insulated from walking bob. Distant terrain should feel enormous,
+    // not attached to the player's helmet. Player position only introduces extremely small parallax.
+    const horizon=(isStation?height*.48:isSatellite?height*.64:height*.55)+surface.pitch*height*.34;
+    const farParallaxX=surface.x*.00035,farParallaxZ=surface.z*.00035;
+    for(let layer=0;layer<(isStation?1:4);layer++){
+      const layerDepth=layer+1;
+      ctx.fillStyle=isMoon?['#090b0e','#111419','#1b1f24','#292d31'][layer]:isSatellite?['#07101a','#0b1722','#10202b','#172b35'][layer]:isStation?'#252c32':['#11151a','#19191c','#252021','#352923'][layer];
+      ctx.beginPath();ctx.moveTo(0,horizon+layer*15);
+      for(let x=0;x<=width+24;x+=24){
+        const viewAngle=surface.yaw+(x-width/2)/width*(1.82+layer*.16);
+        const worldAngle=viewAngle+farParallaxX/layerDepth+farParallaxZ*.43/layerDepth;
+        const broad=Math.sin(worldAngle*(1.18+layer*.31)+layer*1.7)*18;
+        const medium=Math.sin(worldAngle*(2.72+layer*.58)+layer*.8)*10;
+        const fine=Math.sin(worldAngle*(6.1+layer*.7))*4;
+        const peak=Math.max(0,Math.sin(worldAngle*(.57+layer*.12)+2.1))*22;
+        ctx.lineTo(x,horizon+layer*15-22-broad-medium-fine-peak);
+      }
+      ctx.lineTo(width,height);ctx.lineTo(0,height);ctx.closePath();ctx.fill();
+    }
+
+    const ground=ctx.createLinearGradient(0,horizon,0,height);
+    if(isStation){ground.addColorStop(0,'#424b52');ground.addColorStop(.18,'#252d33');ground.addColorStop(.62,'#12171b');ground.addColorStop(1,'#050709');}
+    else if(isMoon){ground.addColorStop(0,'#9aa0a4');ground.addColorStop(.2,'#666c71');ground.addColorStop(.62,'#292d31');ground.addColorStop(1,'#090b0e');}
+    else if(isSatellite){ground.addColorStop(0,'#53636d');ground.addColorStop(.2,'#2a353c');ground.addColorStop(.65,'#11181d');ground.addColorStop(1,'#030608');}
+    else{ground.addColorStop(0,'#594134');ground.addColorStop(.22,'#3a2d27');ground.addColorStop(.62,'#211b19');ground.addColorStop(1,'#08090b');}
+    ctx.fillStyle=ground;ctx.fillRect(0,horizon,width,height-horizon);
+    if(isStation||isSatellite){
+      ctx.save();ctx.strokeStyle=isStation?'rgba(130,170,195,.18)':'rgba(130,205,225,.18)';ctx.lineWidth=1;
+      for(let i=0;i<16;i++){const t=i/15,y=horizon+(height-horizon)*Math.pow(t,1.65);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y);ctx.stroke();}
+      const shift=(surface.x*.8)%90;for(let x=-width;x<width*2;x+=90){ctx.beginPath();ctx.moveTo(width/2+(x-shift)*.08,horizon);ctx.lineTo(width/2+(x-shift)*1.6,height);ctx.stroke();}
+      ctx.restore();
+    }
+
+    // Perspective terrain bands create actual ground depth and remain stable during strafing.
+    ctx.save();ctx.globalAlpha=.24;
+    for(let i=0;i<18;i++){
+      const t=i/17;
+      const y=horizon+(height-horizon)*Math.pow(t,1.72);
+      const wobble=Math.sin(surface.yaw*1.6+i*.83+surface.x*.004+surface.z*.003)*3*(1-t);
+      ctx.strokeStyle=`rgba(225,163,112,${.18*(1-t)+.025})`;
+      ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(0,y+wobble);ctx.bezierCurveTo(width*.28,y-4+wobble,width*.72,y+4+wobble,width,y-wobble);ctx.stroke();
+    }
+    ctx.restore();
+
+    const haze=ctx.createLinearGradient(0,horizon-70,0,horizon+170);
+    haze.addColorStop(0,'rgba(225,150,95,0)');haze.addColorStop(.36,'rgba(220,148,96,.13)');haze.addColorStop(.7,'rgba(120,75,58,.06)');haze.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=haze;ctx.fillRect(0,horizon-70,width,240);
+
+    // A low directional light gives the landscape a clear visual source and stronger scale.
+    const sunX=width*.16+Math.sin(.35-surface.yaw)*width*.22;
+    const sunY=horizon-38+surface.pitch*24;
+    const sunGlow=ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,150);
+    sunGlow.addColorStop(0,'rgba(255,221,169,.32)');sunGlow.addColorStop(.24,'rgba(238,157,100,.13)');sunGlow.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=sunGlow;ctx.beginPath();ctx.arc(sunX,sunY,150,0,Math.PI*2);ctx.fill();
+
+    ctx.save();ctx.translate(bobX,0);
+    const visible=[];
+    for(const rock of surface.rocks){const dx=rock.x-surface.x,dz=rock.z-surface.z;const cs=Math.cos(surface.yaw),sn=Math.sin(surface.yaw);const rz=-dx*sn+dz*cs;if(rz>2)visible.push([rz,rock]);}
+    visible.sort((a,b)=>b[0]-a[0]);
+    for(const [,rock] of visible){
+      const color=isStation?(rock.prop==='console'?'#4e7186':rock.prop==='crate'?'#766d5d':'#566168'):isSatellite?(rock.prop==='panel'?'#315f7a':'#77858d'):isMoon?(rock.tone>.62?'#a4a6a5':rock.tone>.28?'#777b7e':'#4d5256'):(rock.tone>.62?'#6a5548':rock.tone>.28?'#54443b':'#403630');
+      drawSurfaceMarker(rock.x,rock.z,rock.size,color,false,'',rock.lean,false,rock.prop);
+    }
+    drawSurfaceMarker(surface.shipX,surface.shipZ,10,'#aeb8c2',false,isStation?'AIRLOCK':isSatellite?'EVA POD':'SHIP',0,true);
     if(!surface.artifactCollected)drawSurfaceMarker(surface.artifactX,surface.artifactZ,6,'#ffd56f',true,'SIGNAL SOURCE');
-    const tx=surface.artifactCollected?surface.shipX:surface.artifactX,tz=surface.artifactCollected?surface.shipZ:surface.artifactZ;const dist=Math.hypot(tx-surface.x,tz-surface.z);$('surfaceDistance').textContent=`${surface.artifactCollected?'SHIP':'SIGNAL'} ${Math.round(dist).toString().padStart(3,'0')} M`;$('surfaceObjective').textContent=surface.artifactCollected?'Return to the ship':'Locate the signal source';
-    $('surfacePrompt').classList.toggle('show',dist<13);$('surfacePrompt').textContent=surface.artifactCollected?'PRESS E TO LAUNCH':'PRESS E TO EXTRACT';
+    ctx.restore();
+
+    const tx=surface.artifactCollected?surface.shipX:surface.artifactX,tz=surface.artifactCollected?surface.shipZ:surface.artifactZ;
+    const dist=Math.hypot(tx-surface.x,tz-surface.z);
+    $('surfaceDistance').textContent=`${surface.artifactCollected?(isStation?'AIRLOCK':isSatellite?'EVA POD':'SHIP'):'SIGNAL'} ${Math.round(dist).toString().padStart(3,'0')} M`;
+    $('surfaceObjective').textContent=surface.artifactCollected?(isStation?'Return to the airlock':isSatellite?'Return to the EVA pod':'Return to the ship'):(isStation?'Search the station for the signal core':isSatellite?'Cross the orbital platform to the signal':'Locate the signal source');
+    $('surfacePrompt').classList.toggle('show',dist<13);
+    $('surfacePrompt').textContent=surface.artifactCollected?(isStation?'PRESS E TO UNDOCK':isSatellite?'PRESS E TO BOARD':'PRESS E TO LAUNCH'):(isStation?'PRESS E TO RECOVER CORE':'PRESS E TO EXTRACT');
+    $('surfaceCompass').textContent=`WASD MOVE · SHIFT SPRINT · DRAG TO LOOK · ${Math.round(movementSpeed)} M/S`;
   }
-  function drawSurfaceMarker(wx,wz,size,color,glow=false,label=''){
+  function drawSurfaceMarker(wx,wz,size,color,glow=false,label='',lean=0,isShip=false,prop='rock'){
     const dx=wx-surface.x,dz=wz-surface.z;
-    // Transform a fixed world-space point into camera space. This is the exact
-    // inverse of the movement basis above, so rocks stay planted in the world.
     const cs=Math.cos(surface.yaw),sn=Math.sin(surface.yaw);
-    const rx=dx*cs+dz*sn,rz=-dx*sn+dz*cs;if(rz<2)return;const scale=520/rz,sx=width/2+rx*scale,sy=(height*.54+surface.pitch*height*.34)+55*scale;if(sx<-100||sx>width+100)return;const r=Math.max(1,size*scale);
-    if(glow){const g=ctx.createRadialGradient(sx,sy-r,0,sx,sy-r,r*5);g.addColorStop(0,'rgba(255,220,110,.8)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(sx,sy-r,r*5,0,Math.PI*2);ctx.fill()}
-    ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(sx-r,sy);ctx.lineTo(sx-r*.45,sy-r*1.8);ctx.lineTo(sx+r*.25,sy-r*2.4);ctx.lineTo(sx+r,sy);ctx.closePath();ctx.fill();if(label&&r>5){ctx.fillStyle='rgba(255,255,255,.75)';ctx.font='9px Inter';ctx.textAlign='center';ctx.fillText(label,sx,sy-r*2.8)}
+    const rx=dx*cs+dz*sn,rz=-dx*sn+dz*cs;if(rz<2)return;
+    const scale=520/rz,sx=width/2+rx*scale,sy=(height*.55+surface.pitch*height*.34)+55*scale+(rz<90?Math.sin(surface.bob*2.05)*2.2*surface.bobAmount:0);
+    if(sx<-140||sx>width+140)return;const r=Math.max(.8,size*scale);
+    ctx.save();ctx.translate(sx,sy);ctx.transform(1,0,lean,1,0,0);
+    ctx.globalAlpha=clamp(1-rz/420,.18,1);
+    ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(r*.35,r*.12,r*1.3,r*.32,0,0,Math.PI*2);ctx.fill();
+    if(glow){const g=ctx.createRadialGradient(0,-r,0,0,-r,r*5);g.addColorStop(0,'rgba(255,220,110,.85)');g.addColorStop(.35,'rgba(255,176,70,.28)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,-r,r*5,0,Math.PI*2);ctx.fill()}
+    if(isShip){
+      ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(-r*1.45,0);ctx.lineTo(-r*.58,-r*1.15);ctx.lineTo(0,-r*2.25);ctx.lineTo(r*.58,-r*1.15);ctx.lineTo(r*1.45,0);ctx.lineTo(r*.55,-r*.22);ctx.lineTo(0,-r*.55);ctx.lineTo(-r*.55,-r*.22);ctx.closePath();ctx.fill();
+      ctx.fillStyle='rgba(120,205,255,.85)';ctx.fillRect(-r*.22,-r*1.35,r*.44,r*.5);
+    }else if(prop==='crate'||prop==='console'||prop==='column'||prop==='machinery'||prop==='debris'||prop==='panel'||prop==='module'){
+      const h=prop==='column'?r*3.7:prop==='console'?r*1.6:prop==='panel'?r*.55:r*2.1;
+      const w=prop==='column'?r*.7:prop==='panel'?r*3.2:r*1.65;
+      const grad=ctx.createLinearGradient(-w,-h,w,0);grad.addColorStop(0,'rgba(255,255,255,.22)');grad.addColorStop(.3,color);grad.addColorStop(1,'#11161a');ctx.fillStyle=grad;ctx.fillRect(-w/2,-h,w,h);
+      ctx.strokeStyle='rgba(180,220,235,.28)';ctx.lineWidth=Math.max(1,r*.08);ctx.strokeRect(-w/2,-h,w,h);
+      if(prop==='console'||prop==='machinery'){ctx.fillStyle='rgba(90,205,255,.75)';ctx.fillRect(-w*.28,-h*.7,w*.56,h*.18);}
+      if(prop==='panel'){ctx.strokeStyle='rgba(100,190,235,.45)';for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(i*w/6,-h);ctx.lineTo(i*w/6,0);ctx.stroke();}}
+    }else{
+      const grad=ctx.createLinearGradient(-r,-r*2.2,r,0);grad.addColorStop(0,'rgba(255,255,255,.18)');grad.addColorStop(.25,color);grad.addColorStop(1,'#211b18');ctx.fillStyle=grad;
+      ctx.beginPath();ctx.moveTo(-r,0);ctx.lineTo(-r*.58,-r*1.25);ctx.lineTo(-r*.12,-r*2.1);ctx.lineTo(r*.38,-r*1.62);ctx.lineTo(r,0);ctx.closePath();ctx.fill();
+    }
+    if(label&&r>5){ctx.globalAlpha=clamp(1-rz/300,.35,1);ctx.fillStyle='rgba(255,255,255,.82)';ctx.font='9px Inter';ctx.textAlign='center';ctx.fillText(label,0,-r*2.85)}
+    ctx.restore();
   }
   function surfaceInteract(){
     if(mode!=='surface')return;const tx=surface.artifactCollected?surface.shipX:surface.artifactX,tz=surface.artifactCollected?surface.shipZ:surface.artifactZ;if(Math.hypot(tx-surface.x,tz-surface.z)>=13)return;
